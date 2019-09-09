@@ -1,11 +1,9 @@
 module detector
 
-import IO;
-import Set;
-import List;
-import DateTime;
+import Prelude;
 import util::FileHandling;
 import util::Reporting;
+import util::Settings;
 import metrics::LOC;
 import metrics::CC;
 import detectors::RefusedBequest;
@@ -59,21 +57,16 @@ public void detectProject(loc project) {
 	M3 projectM3 = createM3FromEclipseProject(project);
 		
 	detectRB(projectM3);
+	detectII(projectM3);
 	
-	//LOC = calculateLOC(projectM3);
-	//printLOC(LOC);
-	//CC = calculateCCCU(projectM3);
-	//CC = calcClassCC(projectM3);
-	//printCyclomaticComplexity(CC[0], CC[1]);
-	//println("Found CC in project: <CC>");
-	//showCompilationUnitModel(projectM3);
-	//println("Found LOC in project: <LOC>");
 	println("Processed project: <project>");
 }
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
-public void s1(bool silent = false) { 	
+public void s1(bool silent = false, bool debugging = false) {
+	setDebugMode(debugging);
+	
 	detectProject(|project://JavaTestConstructs|);
 	detectProject(|project://Python-Defect-Detector|);
 }

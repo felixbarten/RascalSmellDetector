@@ -1,8 +1,6 @@
 module util::Reporting
 
-import IO;
-import Set;
-import List;
+import Prelude;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::m3::TypeSymbol;
@@ -10,6 +8,7 @@ import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 import lang::java::jdt::m3::TypeSymbol;
 import analysis::m3::TypeSymbol;
+import util::Settings;
 
 // Print complexity values.
 public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complexityVals, int total, bool printAll = false) { 
@@ -85,4 +84,12 @@ public void showCompilationUnitModel(M3 model) {
 			println("<cu>");
 			println();
 		}
+}
+
+public void debug(str msg) {
+	if(getDebugMode()) println("[DEBUG] <msg>");
+}
+
+public void debug(str msg, bool condition){
+	if(condition && getDebugMode()) println("[DEBUG] <msg>");
 }

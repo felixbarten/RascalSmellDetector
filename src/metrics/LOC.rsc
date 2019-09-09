@@ -1,33 +1,33 @@
 module metrics::LOC
 
-import IO;
-import List;
+import Prelude;
+import util::Math;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 
-public tuple[rel[loc, int], int,int,int,num] calculateLOC(M3 model) {
+public tuple[rel[loc, int],int,int,int,real] calculateLOC(M3 model) {
 	
 	rel[loc,int] locs = {};
-	list[tuple[int, int, int]] LOCcontainer = [];
+	list[tuple[int, int, int]] LOCContainer = [];
 	println("Looping through compilation units for calculating Lines of Code");
 	
 	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && 
 		(cu[1].scheme == "java+class" || cu[1].scheme == "java+interface")) {
 		LOCval = getLOC(cu[1]);
 		// append tuples 
-		LOCcontainer += LOCval;
+		LOCContainer += LOCval;
 		locs += <cu[1], LOCval[0]>;
 	}	
 	println("calculating lines of code done");
-	totalLOC = getTotalLOC(LOCcontainer);
+	totalLOC = getTotalLOC(LOCContainer);
 	
-	return <locs, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCcontainer))>; 
+	return <locs, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCContainer))>; 
 }
 
-public num getAvgLOC(int total, int size) {
-	return total / size;
+public real getAvgLOC(int totalLOC, int numberOfFiles) {
+	return toReal(totalLOC) / toReal(numberOfFiles);
 }
 
 // duplication unfortunately. 

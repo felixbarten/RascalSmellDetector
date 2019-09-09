@@ -1,10 +1,7 @@
 module detectors::RefusedBequest
 
-import IO;
-import List;
-import Set; 
-import Relation;
-import Map;
+import Prelude;
+import util::Math;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
@@ -14,21 +11,24 @@ import metrics::CC;
 import util::Reporting;
 import util::Settings;
 
-int avgLOC = 0; 
-int avgCC = 0;
-tuple[map[loc, tuple[int wmc, real amw]], int, int] complexity = <(), 0,0>;
+real avgLOC = 0.0;
+real avgCC = 0.0;
+real avgAMW = 0.0;
+tuple[map[loc, tuple[int wmc, real amw]], int, int, real] complexity = <(), 0,0, 0.0>;
 tuple[rel[loc,int], int,int,int,num] linesOfCode = <{}, 0,0,0,0>;
 map[loc, set[int]] locMap = ();
 map[loc, tuple[int wmc, real amw]] ccMap = ();
+str prefix = "[RB]";
 
 public void initialize(M3 model) {
 	linesOfCode = calculateLOC(model);
 	complexity = calcClassCC(model);
 	
-	avgLOC = linesOfCode[3];
-	avgCC = complexity[2];
+	avgLOC = toReal(linesOfCode[3]);
+	avgCC = toReal(complexity[2]);
 	locMap = toMap(linesOfCode[0]);
 	ccMap = complexity[0];
+	avgAMW = complexity[3];
 	
 	printCyclomaticComplexity(ccMap, complexity[1], printAll = true);
 
@@ -41,20 +41,24 @@ public bool detectRB(M3 model) {
 	// Step 2b If they do have a superclass can we access it or is it a default library?
 	// Step 3: perform analysis on parent and child. 
 	initialize(model);
-	println("[RB] Detector starting for project");
+	println("[<prefix> Detector starting for project");
 	rel[loc, loc, bool] RBCandidates = {};
+	list[loc] nonTrivialClasses = [];
 	bool RB = false;
 	
-	println("Creating AST");
+	println("<prefix> Creating AST");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
 	for(cls <- model.extends, clsValid(cls) == true) {
-		//println(cls);
 		loc child = cls[0];
 		loc parent = cls[1];
 		
 		bool simple = classIsNotSimple(child);
 		bool bequest = classIgnoresBequest(child);
-		if(simple) println("<child> is a simple class");
+		if(simple) {
+			debug("<child> is a simple class");
+			nonTrivialClasses += child;
+			
+		}
 		RB = simple && bequest;
 		RBCandidates += <child, parent, RB>;
 	}
@@ -62,7 +66,7 @@ public bool detectRB(M3 model) {
 	
 
 	println("Number of RB candidates: <size(RBCandidates)> ");
-	//println("<linesOfCode[0]>");
+	println("Number of Simple classes: <size(nonTrivialClasses)>");
 	return RB;
 }
 
@@ -95,24 +99,17 @@ public bool classIsNotSimple(loc cls) {
 }
 
 public bool funcComplexityAbvAvg(loc cls) {
-	// get AMW
-	if (cls in ccMap && ccMap[cls].wmc > 50) {
-		println("AMW: <ccMap[cls].amw>");
-		println("CLS: <cls>");
-	}
-
-	return true;
+	checkIfClassHasValue(cls);
+	
+	bool condition = ccMap[cls].amw > avgAMW;
+	debug("Class <cls.file> has an AMW higher than the avg. <ccMap[cls].amw> avg: <avgAMW>", condition);
+	
+	return condition;
 }
 
 public bool clsComplexityAbvAvg(loc cls) { 
 	int clsCC = 0;
-	if (cls notin ccMap){
-		//println("Class already has a complexity value <ccMap[cls]>");
-		println("Class was not found in complexity map");
-		// calc cc; 
-		ccMap[cls] = calculateCCByLocation(cls);
-		println("Calculated cc... <ccMap[cls].wmc>");
-	}
+	checkIfClassHasValue(cls);
 	clsCC = ccMap[cls].wmc;
 	
 	// debugging
@@ -129,12 +126,20 @@ public bool clsSizeAbvAvg(loc cls) {
 		//println("Class already has a loc value <max(locMap[cls])>");
 		clsLOC = max(locMap[cls]);
 	} else {
-		println("Class size value not found in lines of code");
+		debug("Class size value not found in lines of code");
 		clsLOC = calculateLOCByLocation(cls);
-		println("Calculated loc... <clsLOC>");
+		debug("Calculated loc... <clsLOC>");
 	}
 	// debugging
 	bool condition = clsLOC > avgLOC;
 	if(condition) println("<cls> is above avg class size: <condition>");
 	return condition;
+}
+
+public void checkIfClassHasValue(loc cls) {
+	if (cls notin ccMap){
+		debug("Class was not found in map");
+		// calc cc and add to the map.
+		ccMap[cls] = calculateCCByLocation(cls);
+	}
 }

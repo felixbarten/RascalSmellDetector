@@ -1,9 +1,6 @@
 module metrics::CC
 
-import IO;
-import Set;
-import List;
-import Map;
+import Prelude;
 import util::Math;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
@@ -33,10 +30,11 @@ public rel[loc, int] calcCompUnitCC(M3 model) {
 } 
 
 // Calculates the cyclomatic complexity per class.
-// return list of class locs and their CC, projectCC and avgCC per class.
-// return map WMC, map AMW, total project CC, avg project CC  
-public tuple[map[loc, tuple[int wmc, real amw]], int, int] calcClassCC(M3 model) {
+// return map with WMC/AMW values per class, CC for the whole project, Average CC per class
+// Average Weighted Method count for the whole project.   
+public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calcClassCC(M3 model) {
 	classCC = {};
+	list[real] amwVals = [];
 	processedClasses = [];
 	map[loc, tuple[int wmc, real amw]] CCMap = ();
 	projectCC = 0; 
@@ -57,13 +55,14 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int] calcClassCC(M3 model)
 		}
 		projectCC += WMC;
 		AMW = WMC / toReal(classData[1]);
+		amwVals += AMW;
 		classCC += <cu[1], WMC, AMW>;
 		CCMap[cls] = <WMC, AMW>;
 	}
-	
+	avgAMW = sum(amwVals) / toReal(size(amwVals));
 	println("Finished calculating complexity");
 	println("Total project CC: <projectCC>");
-	return <CCMap, projectCC, (projectCC / size(classCC))>;	
+	return <CCMap, projectCC, (projectCC / size(classCC)), avgAMW>;	
 }
 
 // Parameter in tuple [loc compilationUnit, loc class]
