@@ -1,29 +1,47 @@
 module metrics::LOC
 
 import IO;
+import List;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 
-public tuple[int,int,int] calculateLOC(M3 model) {
+public tuple[rel[loc, int], int,int,int,num] calculateLOC(M3 model) {
 	
-	rel[str,int] locs;
-	rel[loc,int] locs2;
+	rel[loc,int] locs = {};
 	list[tuple[int, int, int]] LOCcontainer = [];
 	println("Looping through compilation units for calculating Lines of Code");
 	
-	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit") {
-	
-		//println(cu[0]);
-		LOCval = getLOC(cu[0], false);
-		println(LOCval);
+	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && 
+		(cu[1].scheme == "java+class" || cu[1].scheme == "java+interface")) {
+		LOCval = getLOC(cu[1]);
 		// append tuples 
 		LOCcontainer += LOCval;
+		locs += <cu[1], LOCval[0]>;
 	}	
 	println("calculating lines of code done");
+	totalLOC = getTotalLOC(LOCcontainer);
 	
-	return getTotalLOC(LOCcontainer); 
+	return <locs, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCcontainer))>; 
+}
+
+public num getAvgLOC(int total, int size) {
+	return total / size;
+}
+
+// duplication unfortunately. 
+// detector needs avg size but it doesn't clearly specify if it's with or without interfaces?.
+public num calculateAvgClassLOC(M3 model) {
+	list[tuple[int, int, int]] LOCcontainer = [];	
+	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && 
+		cu[1].scheme == "java+class") {
+		LOCval = getLOC(cu[0]);
+		LOCcontainer += LOCval;
+	}	
+	totalLOC = getTotalLOC(LOCcontainer);
+	
+	return getAvgLOC(totalLOC[0], size(LOCcontainer)); 
 }
 
 // There are some arbitrary keywords such as loc. The program will stop syntax highlighting if this is the case (without visible IDE errors).
@@ -41,7 +59,7 @@ public tuple[int locNum, int blank, int comments] getTotalLOC(list[tuple[int loc
 }
 
 // placeholder loc code.
-public tuple[int locNum, int blank, int comments] getLOC(loc location, bool debug) {
+public tuple[int locNum, int blank, int comments] getLOC(loc location, bool debug = false) {
 	int LOC = 0;
 	int blankLines = 0;
 	int comments = 0;
@@ -108,4 +126,10 @@ public tuple[int locNum, int blank, int comments] getLOC(loc location, bool debu
 		println("Blank lines: <blankLines>");
 	}
 	return <LOC, blankLines, comments>;
+}
+
+public int calculateLOCByLocation(loc location) {
+	LOCval = getLOC(location);
+
+	return LOCval[0];
 }

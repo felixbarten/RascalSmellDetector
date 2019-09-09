@@ -5,22 +5,24 @@ import Set;
 import List;
 import DateTime;
 import util::FileHandling;
+import util::Reporting;
 import metrics::LOC;
 import metrics::CC;
+import detectors::RefusedBequest;
+import detectors::InappropriateIntimacy;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 
-
-public bool debug = false;
+// temporary workaround. 
 public M3 model = createM3FromEclipseProject(|project://Python-Defect-Detector|);
 
 public void startProgram() {
 	main();
 }
 
-public void main(loc directory) {
+public void main(loc directory, bool debug = false) {
 	if (directory.scheme != "file") {
 		println("Location is not a directory");
 		return;
@@ -44,57 +46,44 @@ public void main(loc directory) {
 	
 	}
 	println("Finished processing all projects in <directory>");
-	
 	println("End of detection process");
-	
 }
 
-public void detectProject(loc project = |project:///|) {
+public void detectProject(loc project) {
 	if (project.scheme != "project") {
 		println("Location is not a project");
 		return;
 	}
+	println("Starting project detection");
 	// This method still works.
 	M3 projectM3 = createM3FromEclipseProject(project);
 		
+	detectRB(projectM3);
+	
 	//LOC = calculateLOC(projectM3);
+	//printLOC(LOC);
 	//CC = calculateCCCU(projectM3);
-	CC = calcClassCC(projectM3);
-	printClasses(CC[0], CC[1]);
+	//CC = calcClassCC(projectM3);
+	//printCyclomaticComplexity(CC[0], CC[1]);
 	//println("Found CC in project: <CC>");
 	//showCompilationUnitModel(projectM3);
 	//println("Found LOC in project: <LOC>");
 	println("Processed project: <project>");
 }
 
-// refactor to somewhere else 
-public void printClasses(rel[loc, int] complexityVals, int total) { 
-	println("Printing CC values found per class.");
-	total = 0; 
-	for(tuple[loc, int] comp <- complexityVals) {
-		println("<comp[0]> CC: <comp[1]>");
-	}
-	sortedList = sort(complexityVals, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
-	
-	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
-	
-	println("Top <displaySize> highest CC classes: ");
-	for(int n <- [0 .. size(sortedList)]) {
-		if (n > 9) break;
-		println("<sortedList[n]>");
-	}
-	
-	println("Finished printing CC values. Total CC: <total>");
-} 
-
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
-public void s1() { 
+public void s1(bool silent = false) { 	
 	detectProject(|project://JavaTestConstructs|);
 	detectProject(|project://Python-Defect-Detector|);
 }
 
-public void startDetector(loc defaultDir = |file:///path/to/dir/|) {
+public void s2() {
+	disseminateM3ModelToFile(createM3FromEclipseProject(|project://JavaTestConstructs|), printAll = true);
+}
+
+public void startDetector(loc directory) {
+	loc defaultDir = |file:///path/to/dir/|;
 	main(defaultDir);
 }
 

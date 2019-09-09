@@ -3,6 +3,8 @@ module metrics::CC
 import IO;
 import Set;
 import List;
+import Map;
+import util::Math;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
@@ -28,58 +30,58 @@ public rel[loc, int] calcCompUnitCC(M3 model) {
 	println("finishing calculating complexity");
 	return compUnitCC;
 	
-}
+} 
 
-// Calculates the cyclomatic complexity per class. 
-public tuple[rel[loc, int], int] calcClassCC(M3 model) {
+// Calculates the cyclomatic complexity per class.
+// return list of class locs and their CC, projectCC and avgCC per class.
+// return map WMC, map AMW, total project CC, avg project CC  
+public tuple[map[loc, tuple[int wmc, real amw]], int, int] calcClassCC(M3 model) {
 	classCC = {};
 	processedClasses = [];
+	map[loc, tuple[int wmc, real amw]] CCMap = ();
 	projectCC = 0; 
 	println("Calculating complexity per Java Class");
 	// split files from classes. So every class is processed individually. 
-	//This does have a downside that code outside of classes are not processed. But in Java this shouldn't be used!
+	// This does have a downside that code outside of classes are not processed. But in Java this shouldn't be used!
 	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && cu[1].scheme == "java+class") {
 		if (cu[1] in processedClasses) {
 			break;
 		} 
 		processedClasses += cu[1];
-		tempClassCC = 0;
+		int WMC = 0;
+		real AMW = 0.0;
+		loc cls = cu[1];
 		classData = calculateClassCC(cu);
-		for(tuple[loc, int] cd <- classData) { 
-			tempClassCC += cd[1];
+		for(tuple[loc, int] cd <- classData[0]) { 
+			WMC += cd[1];
 		}
-		projectCC += tempClassCC;
-		classCC += <cu[1], tempClassCC>;
+		projectCC += WMC;
+		AMW = WMC / toReal(classData[1]);
+		classCC += <cu[1], WMC, AMW>;
+		CCMap[cls] = <WMC, AMW>;
 	}
 	
 	println("Finished calculating complexity");
 	println("Total project CC: <projectCC>");
-	return <classCC, projectCC>;	
+	return <CCMap, projectCC, (projectCC / size(classCC))>;	
 }
 
 // Parameter in tuple [loc compilationUnit, loc class]
-public rel[loc, int] calculateClassCC(tuple[loc, loc] unit) {
-		// compilationunit is index 0. class is index 1 
+public tuple[rel[loc, int], int] calculateClassCC(tuple[loc, loc] unit, bool printAll = false) {
+		// not entirely sure about collectBindings parameter. 
 		AST = createAstFromFile(unit[1], true);
 		detectedMethods = findMethods([AST]); 
 		
-		// This approach uses compilation units. Which is fine but if there is more than one class defined in a file this will yield bad results.
-		//println("<detectedMethods>");
-		println("Found <size(detectedMethods)> methods in compilationUnit <unit[1]>");
-		
-		//println("Submethod: <m> of class <model>");
-		
-		
-		CC = calcMethodsCC(detectedMethods);
-		//println("<CC>");
-		
+		// This approach uses compilation units. 
+		// Which is fine but if there is more than one class defined in a file this will yield bad results.		
+		CC = calcMethodsCC(detectedMethods);		
 		totalCC = 0;
 		for (tuple[loc, int] ccval <- CC) {
 			totalCC += ccval[1]; 
 		}
-		println("Total CC for Class <totalCC>");
-
-		return CC;
+		if (printAll) println("Total CC for Class: <unit[1]> <totalCC>");
+		// include number of methods to calculate AMW in the next step.
+		return <CC, size(detectedMethods)>;
 }
 
 // Update code to new style Annotations are no longer supported in this version of rascal. 
@@ -120,11 +122,22 @@ public rel[str, int] calculateMethodCC(M3 model) {
 rel[loc, int] calcMethodsCC(lrel[loc, Statement] methods) {
 	rel[loc, int] methodCCs = {};
 	
-	for (tuple[loc, Statement] idk <- methods) {
-		methodCCs += <idk[0], calcCC(idk[1])>;
-			
+	for (tuple[loc, Statement] m <- methods) {
+		methodCCs += <m[0], calcCC(m[1])>;
 	}
 	return methodCCs;
+}
+
+public tuple[int,real] calculateCCByLocation(loc location) {
+	AST = createAstFromFile(location, true);
+	detectedMethods = findMethods([AST]); 
+				
+	CC = calcMethodsCC(detectedMethods);		
+	WMC = 0;
+	for (tuple[loc, int] ccval <- CC) {
+		WMC += ccval[1]; 
+	}
+	return <WMC, WMC/ toReal(size(detectedMethods))>;
 }
 
 // Count branching statements on the AST. https://stackoverflow.com/questions/40064886/obtaining-cyclomatic-complexity
@@ -145,12 +158,4 @@ int calcCC(Statement impl) {
         case infix(_,"||",_) : result += 1;
     }
     return result;
-}
-
-public void showCompilationUnitModel(M3 model) {
-	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit") {
-			println();
-			println("<cu>");
-			println();
-		}
 }
