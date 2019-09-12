@@ -22,7 +22,7 @@ str prefix = "[RB]";
 
 public void initialize(M3 model) {
 	linesOfCode = calculateLOC(model);
-	complexity = calcClassCC(model);
+	complexity = calculateClassesCC(model);
 	
 	avgLOC = toReal(linesOfCode[3]);
 	avgCC = toReal(complexity[2]);
@@ -30,8 +30,7 @@ public void initialize(M3 model) {
 	ccMap = complexity[0];
 	avgAMW = complexity[3];
 	
-	printCyclomaticComplexity(ccMap, complexity[1], printAll = true);
-
+	printCyclomaticComplexity(ccMap, complexity[1], printAll = false);
 }
 
 // detect RB using Lanza and Marinescu's metrics 
@@ -48,12 +47,12 @@ public bool detectRB(M3 model) {
 	
 	println("<prefix> Creating AST");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
-	for(cls <- model.extends, clsValid(cls) == true) {
+	for(cls <- model.extends, classIsValid(cls)) {
 		loc child = cls[0];
 		loc parent = cls[1];
 		
 		bool simple = classIsNotSimple(child);
-		bool bequest = classIgnoresBequest(child);
+		bool bequest = classIgnoresBequest(model, child, parent);
 		if(simple) {
 			debug("<child> is a simple class");
 			nonTrivialClasses += child;
@@ -71,34 +70,44 @@ public bool detectRB(M3 model) {
 }
 
 // cls must have a superclass. And superclass needs to be accessible within the project. 
-public bool clsValid(tuple[loc, loc] classes) {
+bool classIsValid(tuple[loc, loc] classes) {
 	return isFile(classes[0])  && isFile(classes[1]);
 }
 
 //
-public bool classIgnoresBequest(loc cls) {
-	return (parentHasProtectedMembers() && childRefusesBequest()) || childHasFewOverrides();
+bool classIgnoresBequest(M3 model, loc child, loc parent) {
+	bool protected = parentHasProtectedMembers();
+	bool childBequest = childRefusesBequest();
+	bool overrides = childHasFewOverrides(model, child);
+
+	return (protected && childBequest) || overrides;
 }
 
-public bool parentHasProtectedMembers() { 
-	return false;
+bool parentHasProtectedMembers() { 
+	return true;
 }
 
-public bool childRefusesBequest() { 
+bool childRefusesBequest() { 
 	return false;
 }
-public bool childHasFewOverrides() { 
+bool childHasFewOverrides(M3 model, loc child) { 
 	int threshold = getBequestOverrideThreshold();
+	
+	// loop through overrides
+	for (ov <- model.methodOverrides){
+		println("<ov>");
+	}
+	
 	return false;
 } 
 
 
 // (functional complexity above average || class complexity is not lower than average). && Class size is above average. 
-public bool classIsNotSimple(loc cls) {
-	return (funcComplexityAbvAvg(cls) || clsComplexityAbvAvg(cls)) && clsSizeAbvAvg(cls);
+bool classIsNotSimple(loc cls) {
+	return (funcComplexityAbvAvg(cls) || classComplexityAbvAvg(cls)) && classSizeAbvAvg(cls);
 }
 
-public bool funcComplexityAbvAvg(loc cls) {
+bool funcComplexityAbvAvg(loc cls) {
 	checkIfClassHasValue(cls);
 	
 	bool condition = ccMap[cls].amw > avgAMW;
@@ -107,7 +116,7 @@ public bool funcComplexityAbvAvg(loc cls) {
 	return condition;
 }
 
-public bool clsComplexityAbvAvg(loc cls) { 
+bool classComplexityAbvAvg(loc cls) { 
 	int clsCC = 0;
 	checkIfClassHasValue(cls);
 	clsCC = ccMap[cls].wmc;
@@ -120,14 +129,14 @@ public bool clsComplexityAbvAvg(loc cls) {
 
 // are the locs from the extends the same ones are the ones from iterating over compilation units?
 // they should be but are they? Needs a fallback method. 
-public bool clsSizeAbvAvg(loc cls) {
+bool classSizeAbvAvg(loc cls) {
 	int clsLOC = 0;
 	if (cls in locMap){
 		//println("Class already has a loc value <max(locMap[cls])>");
 		clsLOC = max(locMap[cls]);
 	} else {
 		debug("Class size value not found in lines of code");
-		clsLOC = calculateLOCByLocation(cls);
+		clsLOC = calculateLOCFromLocation(cls);
 		debug("Calculated loc... <clsLOC>");
 	}
 	// debugging
@@ -136,7 +145,7 @@ public bool clsSizeAbvAvg(loc cls) {
 	return condition;
 }
 
-public void checkIfClassHasValue(loc cls) {
+void checkIfClassHasValue(loc cls) {
 	if (cls notin ccMap){
 		debug("Class was not found in map");
 		// calc cc and add to the map.

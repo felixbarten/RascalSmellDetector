@@ -8,7 +8,7 @@ import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 
 // Calculates the cyclomatic complexity per compilation unit (file). 
-public rel[loc, int] calcCompUnitCC(M3 model) {
+public rel[loc, int] calculateCompUnitsCC(M3 model) {
 	compUnitCC = {};
 	println("Calculating complexity per compilation unit");
 	projectCC = 0; 
@@ -32,7 +32,7 @@ public rel[loc, int] calcCompUnitCC(M3 model) {
 // Calculates the cyclomatic complexity per class.
 // return map with WMC/AMW values per class, CC for the whole project, Average CC per class
 // Average Weighted Method count for the whole project.   
-public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calcClassCC(M3 model) {
+public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClassesCC(M3 model) {
 	classCC = {};
 	list[real] amwVals = [];
 	processedClasses = [];
@@ -83,7 +83,7 @@ public tuple[rel[loc, int], int] calculateClassCC(tuple[loc, loc] unit, bool pri
 		return <CC, size(detectedMethods)>;
 }
 
-// Update code to new style Annotations are no longer supported in this version of rascal. 
+// Updated code to new style Annotations are no longer supported in this version of rascal. 
 lrel[loc, Statement] findMethods(list[Declaration] d) 
 	= [<b.src, b> | /initializer(b) := d]
 	+ [<b.src, b> | /method(_,_,_,_,b) := d]
