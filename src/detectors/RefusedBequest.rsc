@@ -78,26 +78,55 @@ bool classIsValid(tuple[loc, loc] classes) {
 bool classIgnoresBequest(M3 model, loc child, loc parent) {
 	// for debugging to make sure all the code paths are executed (overrides would be skipped if the first conditon is true otherwise).
 	bool protected = parentHasProtectedMembers(model, parent);
-	bool childBequest = childRefusesBequest();
+	bool childBequest = childRefusesBequest(model, child, parent);
 	bool overrides = childHasFewOverrides(model, child);
 
 	return (protected && childBequest) || overrides;
 }
 
-bool parentHasProtectedMembers(M3 model, loc parentLoc) { 
+bool parentHasProtectedMembers(M3 model, loc parent) { 
 	int threshold = getProtectedMemberThreshold();
 	// 1. loop through modifiers 2. find matches to parent loc 3. count occurences. 
 	int count = 0;
-	for (m <- model.modifiers, m[0].parent.path == parentLoc.path && m[1] == \protected()) {
+	for (m <- model.modifiers, m[0].parent.path == parent.path && m[1] == \protected()) {
 		count += 1;
 	}	
 	return count > threshold;
 }
 
-bool childRefusesBequest(M3 model, loc child, loc parent) { 
+bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) { 
+	// calculate BUR: Base Class Usage Ratio.
+	// "The number of inheritance-specific members used by the measured class,
+	// divided by the total number of inheritance-specific members from the base
+	// class"
+	int usedMembers = 0;
+	int parentMembers = 0; 
 	
-
-	return false;
+	for (m <- model.modifiers, m[0].parent.path == parentLoc.path && m[1] == \protected()) {
+		parentMembers += 1;
+	}	
+	
+	int count = 0;
+	for (field <- model.fieldAccess, field[0].parent.path == childLoc.path && isFile(field[1])) {
+		//println("<field>");
+		count += 1;
+	}
+	
+	for (field <- model.methodInvocation, field[0].parent.path == childLoc.path && isFile(field[1])) {
+		//println("<field>");
+		count += 1;
+	}
+		
+	real ratio = 0.0;
+	// prevent div/0 parent may genuinely be 0. 
+	if (parentMembers > 0) {
+		ratio = toReal(count) / toReal(parentMembers);
+	} 
+		
+	println("Ratio: <ratio>");
+	bool condition = ratio < 0.3333;
+	if(condition) println("<childLoc> refuses bequest: <condition>, <ratio>");
+	return condition;
 }
 
 bool childHasFewOverrides(M3 model, loc child) { 
