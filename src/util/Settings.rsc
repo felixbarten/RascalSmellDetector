@@ -6,6 +6,7 @@ import Prelude;
 
 bool debugMode = false;
 int overrideThreshold = 3; 
+int protectedMemberThreshold = 3;
 
 public void setDebugMode(bool b) {
 	if(b) println("Debugging mode is now enabled");
@@ -18,4 +19,8 @@ public bool getDebugMode() {
 
 public int getBequestOverrideThreshold() {
 	return overrideThreshold;
+}
+
+public int getProtectedMemberThreshold() {
+	return protectedMemberThreshold;
 }

@@ -1,6 +1,7 @@
 module detectors::RefusedBequest
 
 import Prelude;
+import String;
 import util::Math;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
@@ -40,7 +41,7 @@ public bool detectRB(M3 model) {
 	// Step 2b If they do have a superclass can we access it or is it a default library?
 	// Step 3: perform analysis on parent and child. 
 	initialize(model);
-	println("[<prefix> Detector starting for project");
+	println("<prefix> Detector starting for project");
 	rel[loc, loc, bool] RBCandidates = {};
 	list[loc] nonTrivialClasses = [];
 	bool RB = false;
@@ -56,7 +57,6 @@ public bool detectRB(M3 model) {
 		if(simple) {
 			debug("<child> is a simple class");
 			nonTrivialClasses += child;
-			
 		}
 		RB = simple && bequest;
 		RBCandidates += <child, parent, RB>;
@@ -64,8 +64,8 @@ public bool detectRB(M3 model) {
 	println("Finished creating AST");
 	
 
-	println("Number of RB candidates: <size(RBCandidates)> ");
-	println("Number of Simple classes: <size(nonTrivialClasses)>");
+	println("<prefix> Number of RB candidates: <size(RBCandidates)> ");
+	println("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
 	return RB;
 }
 
@@ -76,29 +76,48 @@ bool classIsValid(tuple[loc, loc] classes) {
 
 //
 bool classIgnoresBequest(M3 model, loc child, loc parent) {
-	bool protected = parentHasProtectedMembers();
+	// for debugging to make sure all the code paths are executed (overrides would be skipped if the first conditon is true otherwise).
+	bool protected = parentHasProtectedMembers(model, parent);
 	bool childBequest = childRefusesBequest();
 	bool overrides = childHasFewOverrides(model, child);
 
 	return (protected && childBequest) || overrides;
 }
 
-bool parentHasProtectedMembers() { 
-	return true;
+bool parentHasProtectedMembers(M3 model, loc parentLoc) { 
+	int threshold = getProtectedMemberThreshold();
+	// 1. loop through modifiers 2. find matches to parent loc 3. count occurences. 
+	int count = 0;
+	for (m <- model.modifiers, m[0].parent.path == parentLoc.path && m[1] == \protected()) {
+		count += 1;
+	}	
+	return count > threshold;
 }
 
-bool childRefusesBequest() { 
+bool childRefusesBequest(M3 model, loc child, loc parent) { 
+	
+
 	return false;
 }
+
 bool childHasFewOverrides(M3 model, loc child) { 
 	int threshold = getBequestOverrideThreshold();
-	
+	str className = child.file; 
+	str classPath = child.path;
+	rel[loc, loc] overrides = {};
 	// loop through overrides
-	for (ov <- model.methodOverrides){
-		println("<ov>");
+	for (ov <- model.methodOverrides){ 	
+		// compare whole path partial names give too many matches especially with certain naming conventions. 
+		if(classPath == (ov[0].parent.path)){ 
+			// do stuff here 
+			overrides += ov; 
+			// either filter more here or do it in another loop. 
+		}
 	}
+	bool condition = size(overrides) > threshold;
+	debug("[overrides] <child> has more overrides than threshold", condition); 
 	
-	return false;
+	return condition;
 } 
 
 
@@ -151,4 +170,15 @@ void checkIfClassHasValue(loc cls) {
 		// calc cc and add to the map.
 		ccMap[cls] = calculateCCByLocation(cls);
 	}
+}
+
+//Strip location to class name. 
+str stripLocation(loc location) {
+	loc locPath = location.parent; 
+	list[str] paths = split("/", locPath.path);
+	return last(paths);
+}
+
+str stripClassToName(loc location) {
+	return location.file;
 }

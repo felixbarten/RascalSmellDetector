@@ -15,6 +15,7 @@ import lang::java::jdt::m3::AST;
 
 // temporary workaround. 
 public M3 model = createM3FromEclipseProject(|project://Python-Defect-Detector|);
+str prefix = "[MAIN]";
 
 public void startProgram() {
 	main();
@@ -22,44 +23,49 @@ public void startProgram() {
 
 public void main(loc directory, bool debug = false) {
 	if (directory.scheme != "file") {
-		println("Location is not a directory");
+		println("<prefix> Location is not a directory");
 		return;
 	}
-	println("Starting detection process");
+	println("<prefix> Starting detection process");
 	
-	println("Gathering projects in directory: <directory>");
+	println("<prefix> Gathering projects in directory: <directory>");
 	list[loc] projects = gatherProjects(directory);
-	println("Gathered projects");
-	println("Looping through projects");
+	println("<prefix> Gathered projects");
+	println("<prefix> Looping through projects");
 	for (p <- projects) {
 		startTime = now();
-		println("Processing project: <p>");
+		println("<prefix> Processing project: <p>");
 		set[Declaration] projectAST = createAstsFromDirectory(p, true);
 		// are these enough or does my method need models generated through eclipse?
 		M3 projectM3 = createM3FromDirectory(p);
 		
 		LOC = calculateLOC(projectM3);
 		endTime = Interval(startTime, now());
-		println("Processed project: <p> in <endTime>");
+		println("<prefix> Processed project: <p> in <endTime>");
 	
 	}
-	println("Finished processing all projects in <directory>");
-	println("End of detection process");
+	println("<prefix> Finished processing all projects in <directory>");
+	println("<prefix> End of detection process");
 }
 
 public void detectProject(loc project) {
 	if (project.scheme != "project") {
-		println("Location is not a project");
+		println("<prefix> Location is not a project");
 		return;
 	}
-	println("Starting project detection");
+	println("<prefix> Starting project detection");
 	// This method still works.
 	M3 projectM3 = createM3FromEclipseProject(project);
+		
+	// report issues
+	for (message <- projectM3.messages) {
+		debug("<prefix> <message>");
+	}
 		
 	detectRB(projectM3);
 	detectII(projectM3);
 	
-	println("Processed project: <project>");
+	println("<prefix> Processed project: <project>");
 }
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
@@ -68,7 +74,7 @@ public void s1(bool silent = false, bool debugging = false) {
 	setDebugMode(debugging);
 	
 	detectProject(|project://JavaTestConstructs|);
-	detectProject(|project://Python-Defect-Detector|);
+	//detectProject(|project://Python-Defect-Detector|);
 }
 
 public void s2() {

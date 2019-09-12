@@ -11,7 +11,7 @@ import lang::java::jdt::m3::AST;
 str prefix = "[LOC]";
 
 // Returns a tuple with a relation of [class, loc], total LOC, blank lines and comments, average LOC
-public tuple[rel[loc, int],int,int,int,real] calculateLOC(M3 model) {
+public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
 	rel[loc,int] classLOC = {};
 	list[tuple[int, int, int]] LOCContainer = [];
 	println("<prefix> Looping through compilation units to calculate LOC");
@@ -62,7 +62,7 @@ public tuple[int locNum, int blank, int comments] getTotalLOC(list[tuple[int loc
 }
 
 // placeholder loc code.
-public tuple[int locNum, int blank, int comments] getLOC(loc location) {
+public tuple[int locNum, int blank, int comments] getLOC(loc location, bool printAll = false) {
 	int LOC = 0;
 	int blankLines = 0;
 	int comments = 0;
@@ -71,31 +71,31 @@ public tuple[int locNum, int blank, int comments] getLOC(loc location) {
 	srcLines = readFileLines(location); 	
 	for (line <- srcLines) {	
 		if (/^\s*\/\/\s*\w*/ := line) {
-			debug("single line comment: <line>");
+			debug("single line comment: <line>", printAll);
 			comments += 1;
 		} else if (/((\s*\/\*[\w\s]+\*\/)+[\s\w]+(\/\/[\s\w]+$)*)+/ := line) {
-			debug("multiline and code intertwined: <line>");
+			debug("multiline and code intertwined: <line>", printAll);
 			LOC += 1;
 			
 		}else if (/^\s*\/\*\*?[\w\s\?\@]*\*\/$/ := line) {
 			debug("single line multiline:  <line>");
 			comments += 1;
 		}  else if (/\s*\/\*[\w\s]*\*\/[\s\w]+/ := line) {
-				debug("multiline with code: <line>");
+				debug("multiline with code: <line>", printAll);
 			LOC += 1;
 		}	else if (/^[\s\w]*\*\/\s*\w+[\s\w]*/ := line) {
 			// end of multiline + code == loc
-			debug("end of multiline + code:  <line>");
+			debug("end of multiline + code:  <line>", printAll);
 			
 			incomment = false; 
 			LOC += 1;
 		}	else if (/^\s*\/\*\*?[^\*\/]*$/ := line){
 			incomment = true;
 			comments += 1;
-			debug("start multiline comment:  <line>");
+			debug("start multiline comment:  <line>", printAll);
 				
 		} else if (/\s*\*\/\s*$/ := line){
-			debug("end multiline comment: <line>");
+			debug("end multiline comment: <line>", printAll);
 			comments += 1;
 			incomment = false;
 				
@@ -103,19 +103,19 @@ public tuple[int locNum, int blank, int comments] getLOC(loc location) {
 			blankLines += 1;
 		} else {
 			if (!incomment) {
-				debug("code: <line>");
+				debug("code: <line>", printAll);
 				LOC += 1;
 			} else {
-				debug("comment: <line>");
+				debug("comment: <line>", printAll);
 				comments += 1;
 				}
 			}
 			
 		}
-	debug("Results for file: <location>");
-	debug("Lines of Code: <LOC>");
-	debug("Commented lines: <comments>");
-	debug("Blank lines: <blankLines>");
+	debug("Results for file: <location>", printAll);
+	debug("Lines of Code: <LOC>", printAll);
+	debug("Commented lines: <comments>", printAll);
+	debug("Blank lines: <blankLines>", printAll);
 	
 	return <LOC, blankLines, comments>;
 }
