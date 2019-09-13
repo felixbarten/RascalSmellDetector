@@ -10,17 +10,35 @@ import lang::java::jdt::m3::TypeSymbol;
 import analysis::m3::TypeSymbol;
 import util::Settings;
 
+loc logFile = |file:///|;
+loc additionalLogFile = |file:///|;
+bool consoleEnabled = true;
+bool logToProjectFiles = false;
+bool initialized = false;
+datetime startTime = now();
 // Print complexity values.
 public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complexityVals, int total, bool printAll = false) { 
-	println("Printing CC values found per class.");
+	println("[CC] Printing CC values found per class.");
+	rel[loc,int] compVals = {};
 	if(printAll) {
 		for(key <- complexityVals) {
 			tuple[int, real] comp = complexityVals[key];
 			println("Cls: <key> WMC: <comp[0]> AMW: <comp[1]>");
+			compVals += <comp[0], comp[1].wmc>;
 		}
 	}
 	
-	println("Finished printing CC values. Total CC: <total>");
+	sortedList = sort(compVals, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
+
+	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
+
+	println("Top <displaySize> highest CC classes: ");
+	for(int n <- [0 .. size(sortedList)]) {
+		if (n > 9) break;
+		println("<sortedList[n]>");
+	}
+	
+	println("[CC] Finished printing CC values. Total CC: <total>");
 } 
 
 public void printLOC(tuple[int,int,int,num] locVals, bool printAll = false) {
@@ -92,4 +110,61 @@ public void debug(str msg) {
 
 public void debug(str msg, bool condition){
 	if(condition && getDebugMode()) println("[DEBUG] <msg>");
+}
+
+public void startLog() {
+	str fileName = printDateTime(now(), "yyyy-MM-dd_HH_mm");
+	logFile = |home:///log/| + "main<fileName>.txt";
+	writeFile(logFile, "Start of LogFile\n\n");
+	consoleEnabled = getConsoleMode();
+	logToProjectFiles = getProjectLogging();
+	startTime = now();
+	initialized = true;
+ }
+
+public void endLog() {
+	endTime = Interval(startTime, now());
+	output("<prefix> Processed project in: <endTime>");
+}
+// creates a logFile and returns the loc. 
+public loc startProjectLog(str name, str subdir) {
+	loc logLoc = |home:///log/projects/|;
+	logLoc = logLoc + "<subdir>/<name>";
+	writeFile(logLoc, "Start of project: <name> log");
+	// override 
+	additionalLogFile = logLoc;
+	return logLoc; 
+}
+public void endProjectLog(loc log, datetime dt) {
+	endTime = Interval(dt, now());
+	output("Processed project in: <endTime>", log);
+}
+
+public void output (str msg) {
+	if(!initialized) startLog();
+	if(consoleEnabled) 
+		println("<msg>");
+	appendToFile(logFile, msg);
+	appendToFile(logFile, "\n");
+	if(logToProjectFiles && isFile(additionalLogFile)) {
+		appendToFile(additionalLogFile, msg);
+		appendToFile(additionalLogFile, "\n");
+	}
+}
+
+public void output (str msg, loc additionalLog) {
+	if(consoleEnabled) 
+		println("<msg>");
+	appendToFile(logFile, msg);
+	appendToFile(logFile, "\n");
+	appendToFile(additionalLog, msg);
+	appendToFile(additionalLog, "\n");
+}
+
+public void output(str msg, str prefix) {
+	str concatMsg = prefix + msg;
+	if(consoleEnabled) 
+		println("<concatMsg>");
+	appendToFile(logFile, concatMsg); 
+	appendToFile(logFile, "\n");
 }

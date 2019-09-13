@@ -35,18 +35,19 @@ public void initialize(M3 model) {
 }
 
 // detect RB using Lanza and Marinescu's metrics 
-public bool detectRB(M3 model) {	
+public rel[loc,loc,bool] detectRB(M3 model) {	
 	// step 1: create AST from project.
 	// step 2a: visit classes to see if they have a superclass. If not skip. 
 	// Step 2b If they do have a superclass can we access it or is it a default library?
 	// Step 3: perform analysis on parent and child. 
 	initialize(model);
-	println("<prefix> Detector starting for project");
-	rel[loc, loc, bool] RBCandidates = {};
+	output("<prefix> Detector starting for project");
+	rel[loc,loc,bool] detectedRBClasses = {};
+	rel[loc,loc,bool] RBCandidates = {};
 	list[loc] nonTrivialClasses = [];
 	bool RB = false;
 	
-	println("<prefix> Creating AST");
+	output("<prefix> Creating AST");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
 	for(cls <- model.extends, classIsValid(cls)) {
 		loc child = cls[0];
@@ -59,14 +60,22 @@ public bool detectRB(M3 model) {
 			nonTrivialClasses += child;
 		}
 		RB = simple && bequest;
-		RBCandidates += <child, parent, RB>;
+		tuple[loc,loc,bool] temp =<child, parent, RB>;
+		RBCandidates += temp;
+		
+		if(RB) {
+			detectedRBClasses  += temp;
+			debug("RB: <temp>");
+		}
 	}
-	println("Finished creating AST");
+	output("Finished creating AST");
 	
 
-	println("<prefix> Number of RB candidates: <size(RBCandidates)> ");
-	println("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
-	return RB;
+	output("<prefix> Number of RB candidates: <size(RBCandidates)> ");
+	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
+	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
+	
+	return detectedRBClasses;
 }
 
 // cls must have a superclass. And superclass needs to be accessible within the project. 
@@ -107,13 +116,17 @@ bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) {
 	}	
 	
 	int count = 0;
-	for (field <- model.fieldAccess, field[0].parent.path == childLoc.path && isFile(field[1])) {
-		//println("<field>");
+	for (field <- model.fieldAccess, 
+			field[0].parent.path == childLoc.path
+			&& field[1].parent.path == parentLoc.path
+			&& isFile(field[1])) {
 		count += 1;
 	}
 	
-	for (field <- model.methodInvocation, field[0].parent.path == childLoc.path && isFile(field[1])) {
-		//println("<field>");
+	for (field <- model.methodInvocation, 
+			field[0].parent.path == childLoc.path 
+			&& field[1].parent.path == parentLoc.path
+			&& isFile(field[1])) {		
 		count += 1;
 	}
 		
@@ -123,9 +136,8 @@ bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) {
 		ratio = toReal(count) / toReal(parentMembers);
 	} 
 		
-	println("Ratio: <ratio>");
 	bool condition = ratio < 0.3333;
-	if(condition) println("<childLoc> refuses bequest: <condition>, <ratio>");
+	if(condition) output("<childLoc> refuses bequest: <condition>, <ratio>");
 	return condition;
 }
 
@@ -171,7 +183,7 @@ bool classComplexityAbvAvg(loc cls) {
 	
 	// debugging
 	bool condition = clsCC > avgCC;
-	if (condition) 	println("<cls> is more complex than avg: <condition>");
+	if (condition) 	output("<cls> is more complex than avg: <condition>");
 	return condition;
 }
 
@@ -180,7 +192,7 @@ bool classComplexityAbvAvg(loc cls) {
 bool classSizeAbvAvg(loc cls) {
 	int clsLOC = 0;
 	if (cls in locMap){
-		//println("Class already has a loc value <max(locMap[cls])>");
+		//output("Class already has a loc value <max(locMap[cls])>");
 		clsLOC = max(locMap[cls]);
 	} else {
 		debug("Class size value not found in lines of code");
@@ -189,7 +201,7 @@ bool classSizeAbvAvg(loc cls) {
 	}
 	// debugging
 	bool condition = clsLOC > avgLOC;
-	if(condition) println("<cls> is above avg class size: <condition>");
+	if(condition) output("<cls> is above avg class size: <condition>");
 	return condition;
 }
 
@@ -204,7 +216,6 @@ void checkIfClassHasValue(loc cls) {
 //Strip location to class name. 
 str stripLocation(loc location) {
 	loc locPath = location.parent; 
-	list[str] paths = split("/", locPath.path);
 	return last(paths);
 }
 

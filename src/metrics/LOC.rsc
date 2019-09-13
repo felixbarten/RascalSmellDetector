@@ -14,7 +14,7 @@ str prefix = "[LOC]";
 public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
 	rel[loc,int] classLOC = {};
 	list[tuple[int, int, int]] LOCContainer = [];
-	println("<prefix> Looping through compilation units to calculate LOC");
+	output("<prefix> Looping through compilation units to calculate LOC");
 	
 	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && 
 		(cu[1].scheme == "java+class" || cu[1].scheme == "java+interface")) {
@@ -23,7 +23,7 @@ public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
 		LOCContainer += LOCval;
 		classLOC += <cu[1], LOCval[0]>;
 	}	
-	println("<prefix> Finished calculating LOC");
+	output("<prefix> Finished calculating LOC");
 	totalLOC = getTotalLOC(LOCContainer);
 	
 	return <classLOC, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCContainer))>; 

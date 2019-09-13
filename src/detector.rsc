@@ -15,6 +15,7 @@ import lang::java::jdt::m3::AST;
 
 // temporary workaround. 
 public M3 model = createM3FromEclipseProject(|project://Python-Defect-Detector|);
+public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
 
 public void startProgram() {
@@ -22,38 +23,53 @@ public void startProgram() {
 }
 
 public void main(loc directory, bool debug = false) {
-	if (directory.scheme != "file") {
-		println("<prefix> Location is not a directory");
+	if(!isDirectory(directory)) {
+		println("<directory> is not a directory!");
 		return;
 	}
-	println("<prefix> Starting detection process");
+	setDebugMode(false);
+	setProjectLogging(true);
 	
-	println("<prefix> Gathering projects in directory: <directory>");
+	startLog();
+	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
+	output("<prefix> Starting detection process");
+	
+	output("<prefix> Gathering projects in directory: <directory>");
 	list[loc] projects = gatherProjects(directory);
-	println("<prefix> Gathered projects");
-	println("<prefix> Looping through projects");
-	for (p <- projects) {
+	output("<prefix> Gathered <size(projects)> projects.");
+	for (project <- projects) {
+		output("<prefix> Processing project: <project>");
+		loc logFile = startProjectLog(project.path, subdir);
 		startTime = now();
-		println("<prefix> Processing project: <p>");
-		set[Declaration] projectAST = createAstsFromDirectory(p, true);
-		// are these enough or does my method need models generated through eclipse?
-		M3 projectM3 = createM3FromDirectory(p);
 		
-		LOC = calculateLOC(projectM3);
-		endTime = Interval(startTime, now());
-		println("<prefix> Processed project: <p> in <endTime>");
-	
+		// This method still works.
+		M3 projectM3 = createM3FromDirectory(project);
+		
+		// report issues
+		for (message <- projectM3.messages) {
+			//debug("<prefix> <message>");
+			break;
+		}
+			
+		detectRB(projectM3);
+		detectII(projectM3);
+		
+		output("<prefix> Processed project: <project>");
+		endProjectLog(logFile, startTime);
 	}
-	println("<prefix> Finished processing all projects in <directory>");
-	println("<prefix> End of detection process");
+	output("<prefix> Finished processing all projects in <directory>");
+	output("<prefix> End of detection process");
 }
 
+// This method can be called for a single project.
 public void detectProject(loc project) {
 	if (project.scheme != "project") {
-		println("<prefix> Location is not a project");
+		output("<prefix> Location is not a project");
 		return;
 	}
-	println("<prefix> Starting project detection");
+	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
+	startLog();
+	output("<prefix> Starting project detection");
 	// This method still works.
 	M3 projectM3 = createM3FromEclipseProject(project);
 		
@@ -65,14 +81,15 @@ public void detectProject(loc project) {
 	detectRB(projectM3);
 	detectII(projectM3);
 	
-	println("<prefix> Processed project: <project>");
+	output("<prefix> Processed project: <project>");
+	endLog();
 }
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
 public void s1(bool silent = false, bool debugging = false) {
 	setDebugMode(debugging);
-	
+	setProjectLogging(false);
 	detectProject(|project://JavaTestConstructs|);
 	//detectProject(|project://Python-Defect-Detector|);
 }
@@ -88,6 +105,6 @@ public void startDetector(loc directory) {
 
 
 void showModel() {
-	iprintln(model.extends);
+	output(model.extends);
 }
 

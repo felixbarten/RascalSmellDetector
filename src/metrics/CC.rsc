@@ -6,11 +6,14 @@ import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
+import util::Reporting;
+
+str prefix = "[CC]";
 
 // Calculates the cyclomatic complexity per compilation unit (file). 
 public rel[loc, int] calculateCompUnitsCC(M3 model) {
 	compUnitCC = {};
-	println("Calculating complexity per compilation unit");
+	output("<prefix> Calculating complexity per compilation unit");
 	projectCC = 0; 
 	// Do analysis per compilation unit. Less granular.
 	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit") {
@@ -23,8 +26,8 @@ public rel[loc, int] calculateCompUnitsCC(M3 model) {
 		compUnitCC += <cu[0], tempCUCC>;
 	}
 	
-	println("Total project CC: <projectCC>");
-	println("finishing calculating complexity");
+	output("<prefix> Total project CC: <projectCC>");
+	output("<prefix> Finishing calculating complexity");
 	return compUnitCC;
 	
 } 
@@ -38,7 +41,7 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClasse
 	processedClasses = [];
 	map[loc, tuple[int wmc, real amw]] CCMap = ();
 	projectCC = 0; 
-	println("Calculating complexity per Java Class");
+	output("<prefix> Calculating complexity per Java Class");
 	// split files from classes. So every class is processed individually. 
 	// This does have a downside that code outside of classes are not processed. But in Java this shouldn't be used!
 	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && cu[1].scheme == "java+class") {
@@ -60,8 +63,8 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClasse
 		CCMap[cls] = <WMC, AMW>;
 	}
 	avgAMW = sum(amwVals) / toReal(size(amwVals));
-	println("Finished calculating complexity");
-	println("Total project CC: <projectCC>");
+	output("<prefix> Finished calculating complexity");
+	output("<prefix> Total project CC: <projectCC>");
 	return <CCMap, projectCC, (projectCC / size(classCC)), avgAMW>;	
 }
 
@@ -78,7 +81,7 @@ public tuple[rel[loc, int], int] calculateClassCC(tuple[loc, loc] unit, bool pri
 		for (tuple[loc, int] ccval <- CC) {
 			totalCC += ccval[1]; 
 		}
-		if (printAll) println("Total CC for Class: <unit[1]> <totalCC>");
+		if (printAll) output("Total CC for Class: <unit[1]> <totalCC>");
 		// include number of methods to calculate AMW in the next step.
 		return <CC, size(detectedMethods)>;
 }
@@ -99,12 +102,12 @@ public rel[str, int] calculateMethodCC(M3 model) {
 		countMethod += 1;
 	}
 	
-	println("looped through <countMethod> methods");
+	output("looped through <countMethod> methods");
 	
 	for (cu <- model.containment, cu[0].scheme == "java+constructor") {
 		countConstruct += 1;
 	}
-	println("looped through <countConstruct> constructors");
+	output("looped through <countConstruct> constructors");
 	
 	// I found initializers referenced in the CC calculation somewhere on the internet What are they though? 
 	// If you have methods and constructer surely that's everything.
@@ -113,7 +116,7 @@ public rel[str, int] calculateMethodCC(M3 model) {
 		countInit += 1; 
 	}
 	
-	println("Looped through <countInit> Initializers");
+	output("Looped through <countInit> Initializers");
 	
 	return {<"a", 5>, <"b", 6>};
 }
