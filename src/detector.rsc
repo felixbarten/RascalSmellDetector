@@ -16,10 +16,6 @@ import lang::java::jdt::m3::AST;
 public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
 
-public void startProgram() {
-	main();
-}
-
 public void main(loc directory, bool debug = false) {
 	if(!isDirectory(directory)) {
 		println("<directory> is not a directory!");
@@ -103,9 +99,4 @@ public void s1(bool silent = false, bool debugging = false) {
 
 public void s2() {
 	disseminateM3ModelToFile(createM3FromEclipseProject(|project://JavaTestConstructs|), printAll = true);
-}
-
-public void startDetector(loc directory) {
-	loc defaultDir = |file:///path/to/dir/|;
-	main(defaultDir);
 }

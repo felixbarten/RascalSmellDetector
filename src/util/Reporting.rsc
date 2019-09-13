@@ -54,7 +54,6 @@ public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
 public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
 	if(additionalLogFile.scheme == "tmp") {
 		if(!initialized) {
-			println("Initializing...");
 			// not initialized
 			startLog();
 		}
@@ -65,8 +64,8 @@ public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
 	
 	loc logFile = toLocation(logPthStr);	
 	
-	writeFile(logFile, "Classes with Refused Bequest: \n\n\n");
-	for (tuple[loc child, loc parent, bool rb] r <- rb) {
+	writeFile(logFile, "Found <size(rb)> Classes with Refused Bequest: \n\n\n");
+	for (tuple[loc child, loc parent, bool detected] r <- rb) {
 		appendToFile(logFile, r.child.path);
 		appendToFile(logFile, "\n");
 	}
@@ -74,7 +73,7 @@ public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
 	
 	logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__nontrivial";
 	loc logFile2 = toLocation(logPthStr);
-	writeFile(logFile2, "Not simple classes: \n\n\n");
+	writeFile(logFile2, "Found <size(notSimpleClasses)> non-trivial classes: \n\n\n");
 	for (loc l <- notSimpleClasses) {
 		appendToFile(logFile2, l.path);
 		appendToFile(logFile2, "\n");
@@ -128,7 +127,7 @@ public loc startProjectLog(str name, str subdir) {
 
 public void endProjectLog(datetime dt) {
 	endTime = Interval(dt, now());
-	output("Processed project in: <convertIntervalToStr(endTime)>", additionalLogFile);
+	output("[PROJ] Processed project in: <convertIntervalToStr(endTime)>", additionalLogFile);
 }
 
 

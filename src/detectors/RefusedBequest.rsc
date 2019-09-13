@@ -160,10 +160,8 @@ bool childHasFewOverrides(M3 model, loc child) {
 	}
 	bool condition = size(overrides) > threshold;
 	debug("[overrides] <child> has more overrides than threshold"); 
-	
 	return condition;
 } 
-
 
 // (functional complexity above average || class complexity is not lower than average). && Class size is above average. 
 bool classIsNotSimple(loc cls) {
@@ -190,8 +188,6 @@ bool classComplexityAbvAvg(loc cls) {
 	return condition;
 }
 
-// are the locs from the extends the same ones are the ones from iterating over compilation units?
-// they should be but are they? Needs a fallback method. 
 bool classSizeAbvAvg(loc cls) {
 	int clsLOC = 0;
 	if (cls in locMap){
@@ -208,6 +204,7 @@ bool classSizeAbvAvg(loc cls) {
 	return condition;
 }
 
+// some anon classes can have no separate value. if they're missing add them to the map. Not sure if this causes problems by counting some classes twice.
 void checkIfClassHasValue(loc cls) {
 	if (cls notin ccMap){
 		debug("Class was not found in map");
