@@ -57,7 +57,12 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClasse
 			WMC += cd[1];
 		}
 		projectCC += WMC;
-		AMW = WMC / toReal(classData[1]);
+		if (toReal(classData[1]) > 0) {
+		  	AMW = WMC / toReal(classData[1]);
+		} else {
+			AMW = toReal(WMC);
+		}
+		
 		amwVals += AMW;
 		classCC += <cu[1], WMC, AMW>;
 		CCMap[cls] = <WMC, AMW>;
@@ -139,7 +144,11 @@ public tuple[int,real] calculateCCByLocation(loc location) {
 	for (tuple[loc, int] ccval <- CC) {
 		WMC += ccval[1]; 
 	}
-	return <WMC, WMC/ toReal(size(detectedMethods))>;
+	AMW = toReal(WMC);
+	if(size(detectedMethods) > 0) {
+		AMW = WMC / toReal(size(detectedMethods));
+	} 
+	return <WMC, AMW>;
 }
 
 // Count branching statements on the AST. https://stackoverflow.com/questions/40064886/obtaining-cyclomatic-complexity

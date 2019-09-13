@@ -13,8 +13,6 @@ import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 
-// temporary workaround. 
-public M3 model = createM3FromEclipseProject(|project://Python-Defect-Detector|);
 public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
 
@@ -27,7 +25,8 @@ public void main(loc directory, bool debug = false) {
 		println("<directory> is not a directory!");
 		return;
 	}
-	setDebugMode(false);
+	mainTime = now();
+	setDebugMode(debug);
 	setProjectLogging(true);
 	
 	startLog();
@@ -39,7 +38,7 @@ public void main(loc directory, bool debug = false) {
 	output("<prefix> Gathered <size(projects)> projects.");
 	for (project <- projects) {
 		output("<prefix> Processing project: <project>");
-		loc logFile = startProjectLog(project.path, subdir);
+		loc logFile = startProjectLog(project.file, subdir);
 		startTime = now();
 		
 		// This method still works.
@@ -57,7 +56,9 @@ public void main(loc directory, bool debug = false) {
 		output("<prefix> Processed project: <project>");
 		endProjectLog(logFile, startTime);
 	}
+	
 	output("<prefix> Finished processing all projects in <directory>");
+	output("<prefix> Detector ran: <convertIntervalToStr(Interval(mainTime, now()))>");
 	output("<prefix> End of detection process");
 }
 
@@ -67,10 +68,13 @@ public void detectProject(loc project) {
 		output("<prefix> Location is not a project");
 		return;
 	}
-	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
+	N = now();
+	str subdir = printDateTime(N, "yyyy-MM-dd___HH_mm");
 	startLog();
+	if(getProjectLogging()) {
+		startProjectLog(project.authority, subdir);
+	}
 	output("<prefix> Starting project detection");
-	// This method still works.
 	M3 projectM3 = createM3FromEclipseProject(project);
 		
 	// report issues
@@ -78,10 +82,12 @@ public void detectProject(loc project) {
 		debug("<prefix> <message>");
 	}
 		
-	detectRB(projectM3);
+	RB = detectRB(projectM3);
 	detectII(projectM3);
 	
-	output("<prefix> Processed project: <project>");
+	if(getProjectLogging()) {
+		endProjectLog(N);
+	}
 	endLog();
 }
 
@@ -90,6 +96,7 @@ public void detectProject(loc project) {
 public void s1(bool silent = false, bool debugging = false) {
 	setDebugMode(debugging);
 	setProjectLogging(false);
+	
 	detectProject(|project://JavaTestConstructs|);
 	//detectProject(|project://Python-Defect-Detector|);
 }
@@ -102,9 +109,3 @@ public void startDetector(loc directory) {
 	loc defaultDir = |file:///path/to/dir/|;
 	main(defaultDir);
 }
-
-
-void showModel() {
-	output(model.extends);
-}
-

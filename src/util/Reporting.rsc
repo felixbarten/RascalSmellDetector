@@ -1,6 +1,7 @@
 module util::Reporting
 
 import Prelude;
+import DateTime;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::m3::TypeSymbol;
@@ -10,90 +11,78 @@ import lang::java::jdt::m3::TypeSymbol;
 import analysis::m3::TypeSymbol;
 import util::Settings;
 
-loc logFile = |file:///|;
-loc additionalLogFile = |file:///|;
+loc logFile = |tmp:///|;
+loc additionalLogFile = |tmp:///|;
 bool consoleEnabled = true;
 bool logToProjectFiles = false;
 bool initialized = false;
 datetime startTime = now();
 // Print complexity values.
 public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complexityVals, int total, bool printAll = false) { 
-	println("[CC] Printing CC values found per class.");
+	output("[CC] Printing CC values found per class.");
 	rel[loc,int] compVals = {};
-	if(printAll) {
-		for(key <- complexityVals) {
-			tuple[int, real] comp = complexityVals[key];
-			println("Cls: <key> WMC: <comp[0]> AMW: <comp[1]>");
-			compVals += <comp[0], comp[1].wmc>;
-		}
+	
+	for(key <- complexityVals) {
+		tuple[int, real] comp = complexityVals[key];
+		if(printAll) output("Cls: <key> WMC: <comp[0]> AMW: <comp[1]>");
+		compVals += <key, comp[0]>;
 	}
 	
 	sortedList = sort(compVals, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
-
 	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
 
-	println("Top <displaySize> highest CC classes: ");
+	output("Top <displaySize> highest CC classes: ");
 	for(int n <- [0 .. size(sortedList)]) {
 		if (n > 9) break;
-		println("<sortedList[n]>");
+		output("<sortedList[n]>");
 	}
-	
-	println("[CC] Finished printing CC values. Total CC: <total>");
+	output("[CC] Total CC for project: <total>");
 } 
+
+public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
+	sortedList = sort(classLOC, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
+	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
+	
+	output("Top <displaySize> highest LOC files: ");
+	for(int n <- [0 .. size(sortedList)]) {
+		if (n > 9) break;
+		output("<sortedList[n]>");
+	}
+	output("[LOC] Total LOC in project: <totalLOC>");
+}
+
+public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
+	if(additionalLogFile.scheme == "tmp") {
+		if(!initialized) {
+			println("Initializing...");
+			// not initialized
+			startLog();
+		}
+		additionalLogFile = logFile;
+	}
+	// bad workaround for automatic separators when working with locs. 
+	str logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__rb";
+	
+	loc logFile = toLocation(logPthStr);	
+	
+	writeFile(logFile, "Classes with Refused Bequest: \n\n\n");
+	for (tuple[loc child, loc parent, bool rb] r <- rb) {
+		appendToFile(logFile, r.child.path);
+		appendToFile(logFile, "\n");
+	}
+	debug("Saved results of RB detection in <resolveLocation(logFile)>");
+	
+	logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__nontrivial";
+	loc logFile2 = toLocation(logPthStr);
+	writeFile(logFile2, "Not simple classes: \n\n\n");
+	for (loc l <- notSimpleClasses) {
+		appendToFile(logFile2, l.path);
+		appendToFile(logFile2, "\n");
+	}
+}
 
 public void printLOC(tuple[int,int,int,num] locVals, bool printAll = false) {
 	iprintln("<locVals>");
-}
-
-
-public void disseminateM3ModelToFile(M3 m, loc fileLoc = |home:///log/modellog.txt|, bool printAll = false) { 
-	println("Printing entire M3 model to file");
-	println("Your log file is found here: <resolveLocation(fileLoc)>");
-	
-	usesFile = |home:///log/uses.txt|;
-	declFile = |home:///log/decl.txt|;
-	typeFile = |home:///log/type.txt|;
-	nameFile = |home:///log/names.txt|;
-	modelFile = |home:///log/model.txt|;
-	
-	writeFile(fileLoc, "Start of model\n\n");
-	writeFile(declFile, "Start of Declarations\n\n");
-	appendToFile(fileLoc, "declarations:\n\n");
-	
-	for (tuple[loc,loc] d <- m.declarations) {
-		appendToFile(fileLoc, "<d>\n");
-		appendToFile(declFile, "<d>\n");
-	}
-		
-	appendToFile(fileLoc, "\n Finished model");
-	
-	println("Finished printing M3 model.");
-
-	writeFile(typeFile, "Start of Types\n\n");
-	appendToFile(fileLoc, "\n");
-	for (tuple[loc, TypeSymbol] d <- m.types) {
-		appendToFile(fileLoc, "<d>\n");
-		appendToFile(typeFile, "<d>\n");
-	}
-	
-	writeFile(usesFile, "Start of Uses\n\n");
-	appendToFile(fileLoc, "\n");
-	for (tuple[loc,loc] d <- m.uses) {
-		appendToFile(fileLoc, "<d>\n");
-		appendToFile(usesFile, "<d>\n");
-	}
-	
-	writeFile(nameFile, "Start of Names\n\n");
-	appendToFile(fileLoc, "\n");
-	for (tuple[str,loc] d <- m.names) {
-		appendToFile(fileLoc, "<d>\n");
-		appendToFile(nameFile, "<d>\n");
-	
-	}
-	
-	if(printAll) {
-		writeFile(modelFile, m);
-	}
 }
 
 public void showCompilationUnitModel(M3 model) {
@@ -113,8 +102,8 @@ public void debug(str msg, bool condition){
 }
 
 public void startLog() {
-	str fileName = printDateTime(now(), "yyyy-MM-dd_HH_mm");
-	logFile = |home:///log/| + "main<fileName>.txt";
+	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
+	logFile = |home:///log/| + "main<fileName>";
 	writeFile(logFile, "Start of LogFile\n\n");
 	consoleEnabled = getConsoleMode();
 	logToProjectFiles = getProjectLogging();
@@ -124,8 +113,9 @@ public void startLog() {
 
 public void endLog() {
 	endTime = Interval(startTime, now());
-	output("<prefix> Processed project in: <endTime>");
+	output("<prefix> Processed project in: <convertIntervalToStr(endTime)>");
 }
+
 // creates a logFile and returns the loc. 
 public loc startProjectLog(str name, str subdir) {
 	loc logLoc = |home:///log/projects/|;
@@ -133,11 +123,18 @@ public loc startProjectLog(str name, str subdir) {
 	writeFile(logLoc, "Start of project: <name> log");
 	// override 
 	additionalLogFile = logLoc;
-	return logLoc; 
+	return logLoc;
 }
+
+public void endProjectLog(datetime dt) {
+	endTime = Interval(dt, now());
+	output("Processed project in: <convertIntervalToStr(endTime)>", additionalLogFile);
+}
+
+
 public void endProjectLog(loc log, datetime dt) {
 	endTime = Interval(dt, now());
-	output("Processed project in: <endTime>", log);
+	output("Processed project in: <convertIntervalToStr(endTime)>", log);
 }
 
 public void output (str msg) {
@@ -167,4 +164,9 @@ public void output(str msg, str prefix) {
 		println("<concatMsg>");
 	appendToFile(logFile, concatMsg); 
 	appendToFile(logFile, "\n");
+}
+
+public str convertIntervalToStr(interval i) {
+	Duration duration = createDuration(i);
+	return "<duration.hours>:<duration.minutes>:<duration.seconds>";
 }

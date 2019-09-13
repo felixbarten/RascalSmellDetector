@@ -16,21 +16,23 @@ real avgLOC = 0.0;
 real avgCC = 0.0;
 real avgAMW = 0.0;
 tuple[map[loc, tuple[int wmc, real amw]], int, int, real] complexity = <(), 0,0, 0.0>;
-tuple[rel[loc,int], int,int,int,num] linesOfCode = <{}, 0,0,0,0>;
+tuple[rel[loc,int], int,int,int,real] linesOfCode = <{}, 0,0,0,0.0>;
 map[loc, set[int]] locMap = ();
 map[loc, tuple[int wmc, real amw]] ccMap = ();
 str prefix = "[RB]";
 
 public void initialize(M3 model) {
+	output("<prefix> Initializing RB detector");
 	linesOfCode = calculateLOC(model);
 	complexity = calculateClassesCC(model);
 	
-	avgLOC = toReal(linesOfCode[3]);
+	avgLOC = toReal(linesOfCode[4]);
 	avgCC = toReal(complexity[2]);
 	locMap = toMap(linesOfCode[0]);
 	ccMap = complexity[0];
 	avgAMW = complexity[3];
 	
+	printLinesOfCode(linesOfCode[0], linesOfCode[1], avgLOC);
 	printCyclomaticComplexity(ccMap, complexity[1], printAll = false);
 }
 
@@ -53,13 +55,13 @@ public rel[loc,loc,bool] detectRB(M3 model) {
 		loc child = cls[0];
 		loc parent = cls[1];
 		
-		bool simple = classIsNotSimple(child);
+		bool notSimple = classIsNotSimple(child);
 		bool bequest = classIgnoresBequest(model, child, parent);
-		if(simple) {
-			debug("<child> is a simple class");
+		if(notSimple) {		
+			debug("<child> is not a simple class");
 			nonTrivialClasses += child;
 		}
-		RB = simple && bequest;
+		RB = notSimple && bequest;
 		tuple[loc,loc,bool] temp =<child, parent, RB>;
 		RBCandidates += temp;
 		
@@ -74,6 +76,7 @@ public rel[loc,loc,bool] detectRB(M3 model) {
 	output("<prefix> Number of RB candidates: <size(RBCandidates)> ");
 	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
 	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
+	printRB(detectedRBClasses, nonTrivialClasses);
 	
 	return detectedRBClasses;
 }
@@ -114,7 +117,7 @@ bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) {
 	for (m <- model.modifiers, m[0].parent.path == parentLoc.path && m[1] == \protected()) {
 		parentMembers += 1;
 	}	
-	
+		
 	int count = 0;
 	for (field <- model.fieldAccess, 
 			field[0].parent.path == childLoc.path
@@ -137,7 +140,7 @@ bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) {
 	} 
 		
 	bool condition = ratio < 0.3333;
-	if(condition) output("<childLoc> refuses bequest: <condition>, <ratio>");
+	debug("<childLoc> refuses bequest: <condition>, <ratio>");
 	return condition;
 }
 
@@ -156,7 +159,7 @@ bool childHasFewOverrides(M3 model, loc child) {
 		}
 	}
 	bool condition = size(overrides) > threshold;
-	debug("[overrides] <child> has more overrides than threshold", condition); 
+	debug("[overrides] <child> has more overrides than threshold"); 
 	
 	return condition;
 } 
@@ -171,7 +174,7 @@ bool funcComplexityAbvAvg(loc cls) {
 	checkIfClassHasValue(cls);
 	
 	bool condition = ccMap[cls].amw > avgAMW;
-	debug("Class <cls.file> has an AMW higher than the avg. <ccMap[cls].amw> avg: <avgAMW>", condition);
+	debug("Class <cls.file> has an AMW higher than the avg. <ccMap[cls].amw> avg: <avgAMW>");
 	
 	return condition;
 }
@@ -183,7 +186,7 @@ bool classComplexityAbvAvg(loc cls) {
 	
 	// debugging
 	bool condition = clsCC > avgCC;
-	if (condition) 	output("<cls> is more complex than avg: <condition>");
+	debug("<cls> is more complex than avg: <clsCC> \> <avgCC> ");
 	return condition;
 }
 
@@ -201,7 +204,7 @@ bool classSizeAbvAvg(loc cls) {
 	}
 	// debugging
 	bool condition = clsLOC > avgLOC;
-	if(condition) output("<cls> is above avg class size: <condition>");
+	debug("<cls> is above avg class size: <clsLOC> \> <avgLOC>\n");
 	return condition;
 }
 
