@@ -16,17 +16,17 @@ import lang::java::jdt::m3::AST;
 public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
 
-public void main(loc directory, bool debug = false) {
+public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true) {
 	if(!isDirectory(directory)) {
 		println("<directory> is not a directory!");
 		return;
 	}
 	mainTime = now();
-	setDebugMode(debug);
-	setProjectLogging(true);
+	setDebugMode(debugging);
+	setProjectLogging(projectLogging);
+	setConsoleEnabled(console);
 	
-	startLog();
-	startReport();
+	startProcessing();
 	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
 	output("<prefix> Starting detection process");
 	
@@ -37,14 +37,11 @@ public void main(loc directory, bool debug = false) {
 		output("<prefix> Processing project: <project>");
 		loc logFile = startProjectLog(project.file, subdir);
 		startTime = now();
-		
-		// This method still works.
 		M3 projectM3 = createM3FromDirectory(project);
 		
 		// report issues
 		for (message <- projectM3.messages) {
-			//debug("<prefix> <message>");
-			break;
+			debug("<prefix> <message>");
 		}
 			
 		detectRB(projectM3, project);
@@ -57,6 +54,7 @@ public void main(loc directory, bool debug = false) {
 	output("<prefix> Finished processing all projects in <directory>");
 	output("<prefix> Detector ran: <convertIntervalToStr(Interval(mainTime, now()))>");
 	output("<prefix> End of detection process");
+	endProcessing();
 }
 
 // This method can be called for a single project.
@@ -67,8 +65,7 @@ public void detectProject(loc project) {
 	}
 	N = now();
 	str subdir = printDateTime(N, "yyyy-MM-dd___HH_mm");
-	startLog();
-	startReport();
+	startProcessing(); 
 	if(getProjectLogging()) {
 		startProjectLog(project.authority, subdir);
 	}
@@ -80,20 +77,32 @@ public void detectProject(loc project) {
 		debug("<prefix> <message>");
 	}
 		
-	RB = detectRB(projectM3, project);
-	detectII(projectM3);
-	
 	if(getProjectLogging()) {
 		endProjectLog(N);
 	}
+	
+	detectRB(projectM3, project);
+	detectII(projectM3);
+	
+	endProcessing();
+}
+
+// start is a keyword??
+public void startProcessing() {
+	startLog();
+	startReport();
+}
+
+public void endProcessing() {
 	endLog();
 }
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
-public void s1(bool silent = false, bool debugging = false) {
+public void s1(bool console = true, bool debugging = false) {
 	setDebugMode(debugging);
 	setProjectLogging(true);
+	setConsoleMode(console);
 	
 	detectProject(|project://DetectorTests|);
 	detectProject(|project://Python-Defect-Detector|);

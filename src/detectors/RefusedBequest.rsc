@@ -74,7 +74,7 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project) {
 			debug("RB: <temp>");
 		}
 	}
-	output("Finished creating AST");
+	output("<prefix> Finished creating AST");
 	
 
 	output("<prefix> Number of RB candidates: <size(RBCandidates)> ");
