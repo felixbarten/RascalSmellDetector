@@ -10,6 +10,7 @@ int protectedMemberThreshold = 3;
 int couplingThreshold = 3;
 bool consoleMode = true;
 bool logToProjectLogs = true;
+bool results = false;
 
 public void setDebugMode(bool b) {
 	if(b) println("Debugging mode is now enabled");
@@ -22,6 +23,10 @@ public void setConsoleMode(bool b) {
 
 public void setProjectLogging(bool b) {
 	logToProjectLogs = b;
+}
+
+public void setPrintIntermediaryResults(bool b) {
+	results = b;
 }
 
 public bool getDebugMode() {
@@ -46,4 +51,8 @@ public bool getProjectLogging() {
 
 public int getCouplingThreshold() {
 	return couplingThreshold; 
+}
+
+public bool getPrintIntermediaryResults() {
+	return results;
 }

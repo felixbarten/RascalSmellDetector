@@ -37,16 +37,17 @@ public rel[loc, int] calculateCompUnitsCC(M3 model) {
 // Average Weighted Method count for the whole project.   
 public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClassesCC(M3 model) {
 	classCC = {};
-	list[real] amwVals = [];
+	list[real] amwVals = [0.0];
 	processedClasses = [];
 	map[loc, tuple[int wmc, real amw]] CCMap = ();
 	projectCC = 0; 
-	output("<prefix> Calculating complexity per Java Class");
+	output("<prefix> Calculating Cyclomatic Complexity...");
 	// split files from classes. So every class is processed individually. 
 	// This does have a downside that code outside of classes are not processed. But in Java this shouldn't be used!
 	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && cu[1].scheme == "java+class") {
 		if (cu[1] in processedClasses) {
-			break;
+			debug("Already processed this class");
+			continue;
 		} 
 		processedClasses += cu[1];
 		int WMC = 0;
@@ -68,9 +69,12 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClasse
 		CCMap[cls] = <WMC, AMW>;
 	}
 	avgAMW = sum(amwVals) / toReal(size(amwVals));
-	output("<prefix> Finished calculating complexity");
+	avgWMC = 0;
+	if (size(classCC) > 0 ){
+		avgWMC =(projectCC / size(classCC));
+	}
 	output("<prefix> Total project CC: <projectCC>");
-	return <CCMap, projectCC, (projectCC / size(classCC)), avgAMW>;	
+	return <CCMap, projectCC, avgWMC, avgAMW>;	
 }
 
 // Parameter in tuple [loc compilationUnit, loc class]

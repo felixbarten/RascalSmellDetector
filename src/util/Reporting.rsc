@@ -20,6 +20,7 @@ bool initialized = false;
 datetime startTime = now();
 // Print complexity values.
 public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complexityVals, int total, bool printAll = false) { 
+	if(!getPrintIntermediaryResults()) break;
 	output("[CC] Printing CC values found per class.");
 	rel[loc,int] compVals = {};
 	
@@ -41,6 +42,8 @@ public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complex
 } 
 
 public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
+	if(!getPrintIntermediaryResults()) break;
+
 	sortedList = sort(classLOC, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
 	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
 	
@@ -53,6 +56,8 @@ public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
 }
 
 public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
+	if(!getPrintIntermediaryResults()) break;
+
 	if(additionalLogFile.scheme == "tmp") {
 		if(!initialized) {
 			// not initialized
@@ -62,7 +67,7 @@ public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
 	}
 	// bad workaround for automatic separators when working with locs. 
 	str logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__rb";
-	
+	println("<logPthStr>");
 	loc logFile = toLocation(logPthStr);	
 	
 	writeFile(logFile, "Found <size(rb)> Classes with Refused Bequest: \n\n\n");

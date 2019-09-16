@@ -16,16 +16,22 @@ import lang::java::jdt::m3::AST;
 public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
 
-public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true) {
+private void initialize(bool debugging, bool projectLogging, bool enableConsole, bool printAll) {
+	setDebugMode(debugging);
+	setProjectLogging(projectLogging);
+	setConsoleMode(enableConsole);
+	setPrintIntermediaryResults(results);
+}
+
+public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true, bool results = false) {
 	if(!isDirectory(directory)) {
 		println("<directory> is not a directory!");
 		return;
 	}
+	initialize(debugging, projectLogging, console, results);
 	mainTime = now();
-	setDebugMode(debugging);
-	setProjectLogging(projectLogging);
-	setConsoleEnabled(console);
 	
+
 	startProcessing();
 	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
 	output("<prefix> Starting detection process");
@@ -99,11 +105,8 @@ public void endProcessing() {
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
-public void s1(bool console = true, bool debugging = false) {
-	setDebugMode(debugging);
-	setProjectLogging(true);
-	setConsoleMode(console);
-	
+public void s1(bool console = true, bool debugging = false, bool results = true) {
+	initialize(debugging, true, console, results);
 	detectProject(|project://DetectorTests|);
 	detectProject(|project://Python-Defect-Detector|);
 }

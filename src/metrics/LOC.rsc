@@ -14,7 +14,7 @@ str prefix = "[LOC]";
 public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
 	rel[loc,int] classLOC = {};
 	list[tuple[int, int, int]] LOCContainer = [];
-	output("<prefix> Looping through compilation units to calculate LOC");
+	output("<prefix> Calculating LOC...");
 	
 	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && 
 		(cu[1].scheme == "java+class" || cu[1].scheme == "java+interface")) {
@@ -23,13 +23,14 @@ public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
 		LOCContainer += LOCval;
 		classLOC += <cu[1], LOCval[0]>;
 	}	
-	output("<prefix> Finished calculating LOC");
 	totalLOC = getTotalLOC(LOCContainer);
+	output("<prefix> Total project LOC: <totalLOC[0]>");
 	
 	return <classLOC, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCContainer))>; 
 }
 
 public real getAvgLOC(int totalLOC, int numberOfFiles) {
+	if(totalLOC == 0 || numberOfFiles == 0) return 0.0;
 	return toReal(totalLOC) / toReal(numberOfFiles);
 }
 
@@ -47,7 +48,8 @@ public real calculateAvgClassLOC(M3 model) {
 	return getAvgLOC(totalLOC[0], size(LOCcontainer)); 
 }
 
-// There are some arbitrary keywords such as loc. The program will stop syntax highlighting if this is the case (without visible IDE errors).
+// There are some arbitrary keywords such as loc. 
+//The program will stop syntax highlighting if this is the case (without visible IDE errors).
 public tuple[int locNum, int blank, int comments] getTotalLOC(list[tuple[int locNum, int blank, int comments]] locs){
 	tuple[int locNum, int blank, int comments] totalLOC = <0,0,0>;
 	

@@ -61,6 +61,8 @@ public bool detectII(M3 model){
 		caller.scheme = "java+class";
 		loc callee = cu.to.parent;
 		callee.scheme = "java+class";
+		// filter out accessing own fields. 
+		if (caller == callee) continue;
 				
 		if(caller notin classAccess) {
 			classAccess[caller] = ();
@@ -70,7 +72,7 @@ public bool detectII(M3 model){
 			classAccess[caller][callee] = 0;
 		}
 		classAccess[caller][callee] += 1;
-		if(classAccess[caller][callee] > threshold && caller != callee) {
+		if(classAccess[caller][callee] > threshold) {
 			suspectedFAII += <caller, callee>;
 		}
 	}
