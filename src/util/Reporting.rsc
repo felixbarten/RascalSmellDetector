@@ -11,6 +11,7 @@ import lang::java::jdt::m3::TypeSymbol;
 import analysis::m3::TypeSymbol;
 import util::Settings;
 
+loc report = |tmp:///|;
 loc logFile = |tmp:///|;
 loc additionalLogFile = |tmp:///|;
 bool consoleEnabled = true;
@@ -102,13 +103,30 @@ public void debug(str msg, bool condition){
 
 public void startLog() {
 	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
-	logFile = |home:///log/| + "main<fileName>";
+	logFile = |home:///log/| + "mainlog<fileName>";
 	writeFile(logFile, "Start of LogFile\n\n");
 	consoleEnabled = getConsoleMode();
 	logToProjectFiles = getProjectLogging();
 	startTime = now();
 	initialized = true;
  }
+
+public void startReport() {
+	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
+	report = |home:///log/reports| + "report<fileName>";
+	if(!isFile(report)) {
+		writeFile(report, "Start of Report <fileName>\n\n");
+	}
+	// maybe write a table here but for now project summary would be fine. 
+}
+
+public void addProjectToReport(loc project, int totalLOC, int totalCC, int rbClasses) {
+	appendToFile(report, "Project: <project> LOC: <totalLOC> CC: <totalCC> RB classes: <rbClasses>");
+}
+
+public void addIIResultsToReport() {
+	appendToFile(report, "\n");
+}
 
 public void endLog() {
 	endTime = Interval(startTime, now());

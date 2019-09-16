@@ -15,6 +15,8 @@ import util::Settings;
 real avgLOC = 0.0;
 real avgCC = 0.0;
 real avgAMW = 0.0;
+int totalCC = 0;
+int totalLOC = 0;
 tuple[map[loc, tuple[int wmc, real amw]], int, int, real] complexity = <(), 0,0, 0.0>;
 tuple[rel[loc,int], int,int,int,real] linesOfCode = <{}, 0,0,0,0.0>;
 map[loc, set[int]] locMap = ();
@@ -26,18 +28,20 @@ public void initialize(M3 model) {
 	linesOfCode = calculateLOC(model);
 	complexity = calculateClassesCC(model);
 	
+	totalLOC = linesOfCode[1];
+	totalCC = complexity[1];
 	avgLOC = toReal(linesOfCode[4]);
 	avgCC = toReal(complexity[2]);
 	locMap = toMap(linesOfCode[0]);
 	ccMap = complexity[0];
 	avgAMW = complexity[3];
 	
-	printLinesOfCode(linesOfCode[0], linesOfCode[1], avgLOC);
-	printCyclomaticComplexity(ccMap, complexity[1], printAll = false);
+	printLinesOfCode(linesOfCode[0], totalLOC, avgLOC);
+	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
 }
 
 // detect RB using Lanza and Marinescu's metrics 
-public rel[loc,loc,bool] detectRB(M3 model) {	
+public rel[loc,loc,bool] detectRB(M3 model, loc project) {	
 	// step 1: create AST from project.
 	// step 2a: visit classes to see if they have a superclass. If not skip. 
 	// Step 2b If they do have a superclass can we access it or is it a default library?
@@ -77,6 +81,8 @@ public rel[loc,loc,bool] detectRB(M3 model) {
 	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
 	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
 	printRB(detectedRBClasses, nonTrivialClasses);
+	
+	addProjectToReport(project, totalLOC, totalCC, size(detectedRBClasses));
 	
 	return detectedRBClasses;
 }

@@ -7,6 +7,7 @@ import Prelude;
 bool debugMode = false;
 int overrideThreshold = 3; 
 int protectedMemberThreshold = 3;
+int couplingThreshold = 3;
 bool consoleMode = true;
 bool logToProjectLogs = true;
 
@@ -41,4 +42,8 @@ public bool getConsoleMode() {
 
 public bool getProjectLogging() {
 	return logToProjectLogs;
+}
+
+public int getCouplingThreshold() {
+	return couplingThreshold; 
 }

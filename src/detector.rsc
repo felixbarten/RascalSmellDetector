@@ -26,6 +26,7 @@ public void main(loc directory, bool debug = false) {
 	setProjectLogging(true);
 	
 	startLog();
+	startReport();
 	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
 	output("<prefix> Starting detection process");
 	
@@ -46,7 +47,7 @@ public void main(loc directory, bool debug = false) {
 			break;
 		}
 			
-		detectRB(projectM3);
+		detectRB(projectM3, project);
 		detectII(projectM3);
 		
 		output("<prefix> Processed project: <project>");
@@ -67,6 +68,7 @@ public void detectProject(loc project) {
 	N = now();
 	str subdir = printDateTime(N, "yyyy-MM-dd___HH_mm");
 	startLog();
+	startReport();
 	if(getProjectLogging()) {
 		startProjectLog(project.authority, subdir);
 	}
@@ -78,7 +80,7 @@ public void detectProject(loc project) {
 		debug("<prefix> <message>");
 	}
 		
-	RB = detectRB(projectM3);
+	RB = detectRB(projectM3, project);
 	detectII(projectM3);
 	
 	if(getProjectLogging()) {
@@ -91,12 +93,12 @@ public void detectProject(loc project) {
 // it's likely most projects for analysis will need to be imported into Eclipse.
 public void s1(bool silent = false, bool debugging = false) {
 	setDebugMode(debugging);
-	setProjectLogging(false);
+	setProjectLogging(true);
 	
-	detectProject(|project://JavaTestConstructs|);
-	//detectProject(|project://Python-Defect-Detector|);
+	detectProject(|project://DetectorTests|);
+	detectProject(|project://Python-Defect-Detector|);
 }
 
 public void s2() {
-	disseminateM3ModelToFile(createM3FromEclipseProject(|project://JavaTestConstructs|), printAll = true);
+	disseminateM3ModelToFile(createM3FromEclipseProject(|project://DetectorTests|), printAll = true);
 }
