@@ -16,12 +16,12 @@ loc logFile = |tmp:///|;
 loc additionalLogFile = |tmp:///|;
 bool consoleEnabled = true;
 bool logToProjectFiles = false;
+bool printAll = getPrintIntermediaryResults();
 bool initialized = false;
 datetime startTime = now();
 // Print complexity values.
-public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complexityVals, int total, bool printAll = false) { 
-	if(!getPrintIntermediaryResults()) break;
-	output("[CC] Printing CC values found per class.");
+public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complexityVals, int total) { 
+	output("[CC] Printing CC values found per class.", printAll);
 	rel[loc,int] compVals = {};
 	
 	for(key <- complexityVals) {
@@ -33,31 +33,27 @@ public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complex
 	sortedList = sort(compVals, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
 	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
 
-	output("Top <displaySize> highest CC classes: ");
+	output("Top <displaySize> highest CC classes: ", printAll);
 	for(int n <- [0 .. size(sortedList)]) {
 		if (n > 9) break;
-		output("<sortedList[n]>");
+		output("<sortedList[n]>", printAll);
 	}
-	output("[CC] Total CC for project: <total>");
+	output("[CC] Total CC for project: <total>", printAll);
 } 
 
 public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
-	if(!getPrintIntermediaryResults()) break;
-
 	sortedList = sort(classLOC, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
 	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
 	
-	output("Top <displaySize> highest LOC files: ");
+	output("Top <displaySize> highest LOC files: ", printAll);
 	for(int n <- [0 .. size(sortedList)]) {
 		if (n > 9) break;
-		output("<sortedList[n]>");
+		output("<sortedList[n]>", printAll);
 	}
-	output("[LOC] Total LOC in project: <totalLOC>");
+	output("[LOC] Total LOC in project: <totalLOC>", printAll);
 }
 
 public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
-	if(!getPrintIntermediaryResults()) break;
-
 	if(additionalLogFile.scheme == "tmp") {
 		if(!initialized) {
 			// not initialized
@@ -186,6 +182,19 @@ public void output(str msg, str prefix) {
 		println("<concatMsg>");
 	appendToFile(logFile, concatMsg); 
 	appendToFile(logFile, "\n");
+}
+
+//conditional output to console to prevent clutter.
+public void output(str msg, bool condition) {
+	if(!initialized) startLog();
+	if(consoleEnabled && condition) 
+		println("<msg>");
+	appendToFile(logFile, msg);
+	appendToFile(logFile, "\n");
+	if(logToProjectFiles && isFile(additionalLogFile)) {
+		appendToFile(additionalLogFile, msg);
+		appendToFile(additionalLogFile, "\n");
+	}
 }
 
 public str convertIntervalToStr(interval i) {

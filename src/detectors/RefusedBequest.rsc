@@ -53,7 +53,7 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project) {
 	list[loc] nonTrivialClasses = [];
 	bool RB = false;
 	
-	output("<prefix> Creating AST");
+	output("<prefix> Creating AST...");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
 	for(cls <- model.extends, classIsValid(cls)) {
 		loc child = cls[0];

@@ -20,7 +20,7 @@ private void initialize(bool debugging, bool projectLogging, bool enableConsole,
 	setDebugMode(debugging);
 	setProjectLogging(projectLogging);
 	setConsoleMode(enableConsole);
-	setPrintIntermediaryResults(results);
+	setPrintIntermediaryResults(printAll);
 }
 
 public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true, bool results = false) {
