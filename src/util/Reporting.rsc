@@ -56,14 +56,12 @@ public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
 public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
 	if(additionalLogFile.scheme == "tmp") {
 		if(!initialized) {
-			// not initialized
 			startLog();
 		}
 		additionalLogFile = logFile;
 	}
-	// bad workaround for automatic separators when working with locs. 
+	// bad workaround for automatic separator insertion when working with locs. 
 	str logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__rb";
-	println("<logPthStr>");
 	loc logFile = toLocation(logPthStr);	
 	
 	writeFile(logFile, "Found <size(rb)> Classes with Refused Bequest: \n\n\n");
@@ -80,6 +78,29 @@ public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
 		appendToFile(logFile2, l.path);
 		appendToFile(logFile2, "\n");
 	}
+}
+
+public void printII(rel[loc,loc] ii) {
+	if(additionalLogFile.scheme == "tmp") {
+		if(!initialized) {
+			startLog();
+		}
+		additionalLogFile = logFile;
+	}
+	// bad workaround for automatic separator insertion when working with locs. 
+	str logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__ii";
+	loc logFile = toLocation(logPthStr);	
+	
+	writeFile(logFile, "Found <size(ii)> Classes with Inappropriate Intimacy: \n\n\n");
+	for (tuple[loc l1, loc l2] r <- ii) {
+		appendToFile(logFile, "<r.l1> & <r.l2>\n");
+	}
+	appendToFile(logFile, "All classes with II:\n\n");
+	for (loc l <- carrier(ii)) {
+		appendToFile(logFile, "<l>");
+	}
+	
+	debug("Saved results of II detection in <resolveLocation(logFile)>");
 }
 
 public void printLOC(tuple[int,int,int,num] locVals, bool printAll = false) {
@@ -125,8 +146,8 @@ public void addProjectToReport(loc project, int totalLOC, int totalCC, int rbCla
 	appendToFile(report, "Project: <project> LOC: <totalLOC> CC: <totalCC> RB classes: <rbClasses>");
 }
 
-public void addIIResultsToReport() {
-	appendToFile(report, "\n");
+public void addIIResultsToReport(int countII) {
+	appendToFile(report, " II: <countII>\n");
 }
 
 public void endLog() {

@@ -10,15 +10,19 @@ import util::Reporting;
 
 int threshold = 0;
 bool debugMode = false; 
+bool printAll = false;
+str prefix = "[II]";
 
 public void initialize() {
+	output("<prefix> Initializing...");
 	threshold = getCouplingThreshold();
 	debugMode = getDebugMode();
+	printAll =  getPrintIntermediaryResults();
 }
 
 // detect II with Lanza and Marinescu's metrics. 
 // In the book Intensive Coupling is defined which is not the same as the Inappropriate Intimacy smell however. 
-public bool detectII(M3 model){	
+public rel[loc,loc] detectII(M3 model){	
 	// 1. loop through method calls in project. 
 	// 2. check if the callee is a valid file in the project otherwise discard. 
 	// 3. count calls for every class. to other classes. 
@@ -27,18 +31,37 @@ public bool detectII(M3 model){
 	
 	initialize();
 	map[loc, map[loc, int]] classCalls = ();
+	map[loc, map[loc, int]] raw = ();
+	
 	map[loc, map[loc, int]] classAccess = ();
+	rel[loc,loc] II = {};
 	
 	set[tuple[loc, loc]] suspectedII = {};
 	set[tuple[loc, loc]] suspectedFAII = {};
 	
+	output("<prefix> detecting II...");
 	for (tuple[loc from, loc to] cu <- model.methodInvocation, isFile(cu.to)) {
 		loc caller = cu.from.parent;
-		// make the loc valid again.
+		loc from = cu.from;
+		// convert to classes for comparison.
+		// it should be a method calling a method so loc.parent shoud return the class. 
 		caller.scheme = "java+class";
 		loc callee = cu.to.parent;
+		loc to = cu.to;
 		callee.scheme = "java+class";
 		
+		// discard if the caller and callee are the same source. 
+		if(caller == callee){
+			debug("Caller is equal to callee.");
+			debug("<from>, <to>");
+			continue;
+		}
+		// <debugging>
+		if(from notin raw) raw[from] = ();
+		if(to notin raw[from]) raw[from][to] = 0;
+		raw[from][to] += 1;
+		// </debugging>
+				
 		if(caller notin classCalls) {
 			classCalls[caller] = ();
 		}
@@ -51,8 +74,6 @@ public bool detectII(M3 model){
 			suspectedII += <caller, callee>;
 		}
 	}
-	
-	
 	//filtering for modfiers is not possible as some fields are accessible if they have no modifier.
 	// filtering out private and protected is an option though to increase performance
 	for (tuple[loc from, loc to] cu <- model.fieldAccess, isFile(cu.to)) {
@@ -76,26 +97,21 @@ public bool detectII(M3 model){
 			suspectedFAII += <caller, callee>;
 		}
 	}
-	
-	
-	//iprint("<suspectedII>");
-	if(getDebugMode()) {
-		debug("Printing suspect classes from II detection", true);
-		for(val <- suspectedII) {
-			debug("Caller: <val[0]>, callee: <val[1]>");
-		}
-		for(val <- suspectedFAII) {
-			debug("Access: <val[0]>, access from: <val[1]>");
+	// if A,b is in set is B,A also available?
+	for(tuple[loc a, loc b] s <- suspectedII, <s.b, s.a> in suspectedII) {
+		//filter out dupes. 
+		if(s notin II && <s.b, s.a> notin II) {
+			II += s;
+			output("<prefix> Detected II classes: <s.a.path> & <s.b.path>", printAll);
 		}
 	}
+	output("<prefix> Finished II detection. Found <size(carrier(II))> II classes");
+		
 	
+	printII(II);
+	addIIResultsToReport(size(carrier(II)));
 	
-	bool condition = false;
-	
-	
-	addIIResultsToReport();
-	
-	return condition;
+	return II;
 }
 
 public int calculateCINT() {

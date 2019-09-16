@@ -108,7 +108,7 @@ public void endProcessing() {
 public void s1(bool console = true, bool debugging = false, bool results = true) {
 	initialize(debugging, true, console, results);
 	detectProject(|project://DetectorTests|);
-	detectProject(|project://Python-Defect-Detector|);
+	//detectProject(|project://Python-Defect-Detector|);
 }
 
 public void s2() {
