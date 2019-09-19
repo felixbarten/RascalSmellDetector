@@ -97,7 +97,7 @@ public void printII(rel[loc,loc] ii) {
 	}
 	appendToFile(logFile, "All classes with II:\n\n");
 	for (loc l <- carrier(ii)) {
-		appendToFile(logFile, "<l>");
+		appendToFile(logFile, "<l>\n");
 	}
 	
 	debug("Saved results of II detection in <resolveLocation(logFile)>");
@@ -130,8 +130,24 @@ public void startLog() {
 	consoleEnabled = getConsoleMode();
 	logToProjectFiles = getProjectLogging();
 	startTime = now();
+	initializeDirectories();
 	initialized = true;
  }
+
+// create directories 
+// log
+// 		reports
+//		projects
+void initializeDirectories(loc directory = |home:///|) {
+	loc logDir = directory + "log/";
+	loc reportsDir = logDir + "reports/";
+	loc projectsDir = logDir + "projects/";
+	if(!isDirectory(logDir)) {
+		mkDirectory(logDir);
+		mkDirectory(reportsDir);
+		mkDirectory(projectsDir);
+	}
+}
 
 public void startReport() {
 	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
