@@ -39,7 +39,7 @@ public rel[loc,loc] detectII(M3 model){
 	set[tuple[loc, loc]] suspectedII = {};
 	set[tuple[loc, loc]] suspectedFAII = {};
 	
-	output("<prefix> detecting II...");
+	output("<prefix> Detecting II...");
 	for (tuple[loc from, loc to] cu <- model.methodInvocation, isFile(cu.to)) {
 		loc caller = cu.from.parent;
 		loc from = cu.from;

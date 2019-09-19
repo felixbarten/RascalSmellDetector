@@ -1,4 +1,4 @@
-module detector
+module Detector
 
 import Prelude;
 import util::FileHandling;
@@ -39,8 +39,10 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 	output("<prefix> Gathering projects in directory: <directory>");
 	list[loc] projects = gatherProjects(directory);
 	output("<prefix> Gathered <size(projects)> projects.");
+	int count = 1; 
+	int projectNum = size(projects);
 	for (project <- projects) {
-		output("<prefix> Processing project: <project>");
+		output("<prefix> Processing project <count> of <projectNum>: <project>");
 		loc logFile = startProjectLog(project.file, subdir);
 		startTime = now();
 		M3 projectM3 = createM3FromDirectory(project);
@@ -55,6 +57,7 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 		
 		output("<prefix> Processed project: <project>");
 		endProjectLog(logFile, startTime);
+		count += 1;
 	}
 	
 	output("<prefix> Finished processing all projects in <directory>");
@@ -108,7 +111,7 @@ public void endProcessing() {
 public void s1(bool console = true, bool debugging = false, bool results = true) {
 	initialize(debugging, true, console, results);
 	detectProject(|project://DetectorTests|);
-	//detectProject(|project://Python-Defect-Detector|);
+	detectProject(|project://Python-Defect-Detector|);
 }
 
 public void s2() {

@@ -19,118 +19,15 @@ bool logToProjectFiles = false;
 bool printAll = getPrintIntermediaryResults();
 bool initialized = false;
 datetime startTime = now();
-// Print complexity values.
-public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complexityVals, int total) { 
-	output("[CC] Printing CC values found per class.", printAll);
-	rel[loc,int] compVals = {};
-	
-	for(key <- complexityVals) {
-		tuple[int, real] comp = complexityVals[key];
-		if(printAll) output("Cls: <key> WMC: <comp[0]> AMW: <comp[1]>");
-		compVals += <key, comp[0]>;
-	}
-	
-	sortedList = sort(compVals, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
-	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
 
-	output("Top <displaySize> highest CC classes: ", printAll);
-	for(int n <- [0 .. size(sortedList)]) {
-		if (n > 9) break;
-		output("<sortedList[n]>", printAll);
-	}
-	output("[CC] Total CC for project: <total>", printAll);
-} 
-
-public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
-	sortedList = sort(classLOC, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
-	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
-	
-	output("Top <displaySize> highest LOC files: ", printAll);
-	for(int n <- [0 .. size(sortedList)]) {
-		if (n > 9) break;
-		output("<sortedList[n]>", printAll);
-	}
-	output("[LOC] Total LOC in project: <totalLOC>", printAll);
-}
-
-public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
-	if(additionalLogFile.scheme == "tmp") {
-		if(!initialized) {
-			startLog();
-		}
-		additionalLogFile = logFile;
-	}
-	// bad workaround for automatic separator insertion when working with locs. 
-	str logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__rb";
-	loc logFile = toLocation(logPthStr);	
-	
-	writeFile(logFile, "Found <size(rb)> Classes with Refused Bequest: \n\n\n");
-	for (tuple[loc child, loc parent, bool detected] r <- rb) {
-		appendToFile(logFile, r.child.path);
-		appendToFile(logFile, "\n");
-	}
-	debug("Saved results of RB detection in <resolveLocation(logFile)>");
-	
-	logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__nontrivial";
-	loc logFile2 = toLocation(logPthStr);
-	writeFile(logFile2, "Found <size(notSimpleClasses)> non-trivial classes: \n\n\n");
-	for (loc l <- notSimpleClasses) {
-		appendToFile(logFile2, l.path);
-		appendToFile(logFile2, "\n");
-	}
-}
-
-public void printII(rel[loc,loc] ii) {
-	if(additionalLogFile.scheme == "tmp") {
-		if(!initialized) {
-			startLog();
-		}
-		additionalLogFile = logFile;
-	}
-	// bad workaround for automatic separator insertion when working with locs. 
-	str logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__ii";
-	loc logFile = toLocation(logPthStr);	
-	
-	writeFile(logFile, "Found <size(ii)> Classes with Inappropriate Intimacy: \n\n\n");
-	for (tuple[loc l1, loc l2] r <- ii) {
-		appendToFile(logFile, "<r.l1> & <r.l2>\n");
-	}
-	appendToFile(logFile, "All classes with II:\n\n");
-	for (loc l <- carrier(ii)) {
-		appendToFile(logFile, "<l>\n");
-	}
-	
-	debug("Saved results of II detection in <resolveLocation(logFile)>");
-}
-
-public void printLOC(tuple[int,int,int,num] locVals, bool printAll = false) {
-	iprintln("<locVals>");
-}
-
-public void showCompilationUnitModel(M3 model) {
-	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit") {
-			println();
-			println("<cu>");
-			println();
-		}
-}
-
-public void debug(str msg) {
-	if(getDebugMode()) println("[DEBUG] <msg>");
-}
-
-public void debug(str msg, bool condition){
-	if(condition && getDebugMode()) println("[DEBUG] <msg>");
-}
-
-public void startLog() {
+public void startLog(loc directory = |home:///|) {
+	initializeDirectories(directory = directory);
 	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
-	logFile = |home:///log/| + "mainlog<fileName>";
+	logFile = directory + "mainlog<fileName>";
 	writeFile(logFile, "Start of LogFile\n\n");
 	consoleEnabled = getConsoleMode();
 	logToProjectFiles = getProjectLogging();
 	startTime = now();
-	initializeDirectories();
 	initialized = true;
  }
 
@@ -189,7 +86,97 @@ public void endProjectLog(datetime dt) {
 
 public void endProjectLog(loc log, datetime dt) {
 	endTime = Interval(dt, now());
-	output("Processed project in: <convertIntervalToStr(endTime)>", log);
+	output("[PROJ] Processed project in: <convertIntervalToStr(endTime)>", log);
+}
+
+// Print complexity values.
+public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complexityVals, int total) { 
+	output("[CC] Printing CC values found per class.", printAll);
+	rel[loc,int] compVals = {};
+	
+	for(key <- complexityVals) {
+		tuple[int, real] comp = complexityVals[key];
+		if(printAll) output("Cls: <key> WMC: <comp[0]> AMW: <comp[1]>");
+		compVals += <key, comp[0]>;
+	}
+	
+	sortedList = sort(compVals, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
+	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
+
+	output("[CC] Top <displaySize> highest CC classes: ", printAll);
+	printNFromList(sortedList, 10);
+	output("[CC] Total CC for project: <total>", printAll);
+} 
+
+public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
+	sortedList = sort(classLOC, bool(tuple[loc,int] a, tuple[loc,int] b) { return a[1] > b[1]; });
+	displaySize = size(sortedList) >= 10 ? 10 : size(sortedList);
+	
+	output("[LOC] Top <displaySize> highest LOC files: ", printAll);
+	printNFromList(sortedList, 10);
+	output("[LOC] Total LOC in project: <totalLOC>", printAll);
+}
+
+public void printRB(rel[loc, loc,bool] rb, list[loc] notSimpleClasses) {
+	if(additionalLogFile.scheme == "tmp") {
+		if(!initialized) {
+			startLog();
+		}
+		additionalLogFile = logFile;
+	}
+	// bad workaround for automatic separator insertion when working with locs. 
+	str logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__rb";
+	loc logFile = toLocation(logPthStr);	
+	
+	writeFile(logFile, "Found <size(rb)> Classes with Refused Bequest: \n\n\n");
+	for (tuple[loc child, loc parent, bool detected] r <- rb) {
+		appendToFile(logFile, r.child.path);
+		appendToFile(logFile, "\n");
+	}
+	debug("Saved results of RB detection in <resolveLocation(logFile)>");
+	
+	logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__nontrivial";
+	loc logFile2 = toLocation(logPthStr);
+	writeFile(logFile2, "Found <size(notSimpleClasses)> non-trivial classes: \n\n\n");
+	for (loc l <- notSimpleClasses) {
+		appendToFile(logFile2, l.path);
+		appendToFile(logFile2, "\n");
+	}
+}
+
+public void printII(rel[loc,loc] ii) {
+	if(additionalLogFile.scheme == "tmp") {
+		if(!initialized) {
+			startLog();
+		}
+		additionalLogFile = logFile;
+	}
+	// bad workaround for automatic separator insertion when working with locs. 
+	str logPthStr = additionalLogFile.scheme + ":///" + additionalLogFile.path + "__ii";
+	loc logFile = toLocation(logPthStr);	
+	
+	writeFile(logFile, "Found <size(ii)> Classes with Inappropriate Intimacy: \n\n\n");
+	for (tuple[loc l1, loc l2] r <- ii) {
+		appendToFile(logFile, "<r.l1> & <r.l2>\n");
+	}
+	appendToFile(logFile, "All classes with II:\n\n");
+	for (loc l <- carrier(ii)) {
+		appendToFile(logFile, "<l>\n");
+	}
+	
+	debug("Saved results of II detection in <resolveLocation(logFile)>");
+}
+
+void printNFromList(sortedList, int n) {
+	if(n >2) n -= 1; 
+	for(int n <- [0 .. size(sortedList)]) {
+		if (n > 9) break;
+		output("<sortedList[n]>", printAll);
+	}
+}
+
+public void printLOC(tuple[int,int,int,num] locVals, bool printAll = false) {
+	iprintln("<locVals>");
 }
 
 public void output (str msg) {
@@ -234,7 +221,18 @@ public void output(str msg, bool condition) {
 	}
 }
 
+public void debug(str msg) {
+	if(getDebugMode()) println("[DEBUG] <msg>");
+}
+
+public void debug(str msg, bool condition){
+	if(condition && getDebugMode()) println("[DEBUG] <msg>");
+}
+
 public str convertIntervalToStr(interval i) {
 	Duration duration = createDuration(i);
+	if (duration.days > 0) { 
+		return "<duration.days> days and <duration.hours>:<duration.minutes>:<duration.seconds>";
+	}
 	return "<duration.hours>:<duration.minutes>:<duration.seconds>";
 }
