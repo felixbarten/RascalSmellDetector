@@ -43,6 +43,7 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 	output("<prefix> Gathered <size(projects)> projects.");
 	int count = 1; 
 	int projectNum = size(projects);
+	
 	for (project <- projects) {
 		output("<prefix> Processing project <count> of <projectNum>: <project>");
 		initializeProject(project.file);
@@ -77,23 +78,11 @@ void processProject(loc project) {
 	detectII(projectM3);
 }
 
-void reprocessProject(loc project) {
-	M3 model = emptyM3(project); 
-	model.modifiers = retrieveRBMOD();
-	model.methodInvocation = retrieveRBMI();
-	model.fieldAccess = retrieveRBFA();
-	model.methodOverrides = retrieveRBOV();
-	model.extends = retrieveRBEX();	
-		
+void reprocessProject(loc project) {		
 	LOC = retrieveLOC();
 	CC = retrieveCC();
-	debug("<size(model.modifiers)>");
-	debug("<size(model.methodInvocation)>");
-	debug("<size(model.fieldAccess)>");
-	debug("<size(model.methodOverrides)>");
-	debug("<size(model.extends)>");
-	debug("CC: <size(CC[0])>");
-	debug("LOC: <size(LOC[0])>");
+
+	M3 model = retrieveModel();
 	
 	IIFA = retrieveIIFA();
 	IICC = retrieveIICC();
@@ -146,7 +135,7 @@ public void endProcessing() {
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
 public void s1(bool console = true, bool debugging = false, bool results = true) {
-	initialize(debugging, true, console, results);
+	initialize(debugging, true, console, results, true);
 	detectProject(|project://DetectorTests|);
 	detectProject(|project://Python-Defect-Detector|);
 }

@@ -60,36 +60,6 @@ public void storeLOC(tuple[rel[loc,int],int,int,int,real] results){
 	writeBinaryValueFile(dataFile, results);
 }
 
-public void storeRBFA(rel[loc,loc] results){
-	debug("Storing RB data");
-	loc dataFile = dataDir + "RBFA/<name>";
-	writeBinaryValueFile(dataFile, results);
-}
-
-public void storeRBMI(rel[loc,loc] results){
-	debug("Storing RB data");
-	loc dataFile = dataDir + "RBMI/<name>";
-	writeBinaryValueFile(dataFile, results);
-}
-
-public void storeRBMOD(rel[loc,Modifier] results){
-	debug("Storing RB data");
-	loc dataFile = dataDir + "RBMOD/<name>";
-	writeBinaryValueFile(dataFile, results);
-}
-
-public void storeRBOV(rel[loc,loc] results){
-	debug("Storing RB data");
-	loc dataFile = dataDir + "RBOV/<name>";
-	writeBinaryValueFile(dataFile, results);
-}
-
-public void storeRBEX(rel[loc,loc] results){
-	debug("Storing RB data");
-	loc dataFile = dataDir + "RBEX/<name>";
-	writeBinaryValueFile(dataFile, results);
-}
-
 public void storeIICC(map[loc, map[loc, int]] results){
 	debug("Storing II ClassCalls data");
 	loc dataFile = dataDir + "IICC/<name>";
@@ -100,6 +70,11 @@ public void storeIIFA(map[loc, map[loc, int]] results){
 	debug("Storing II FA data");
 	loc dataFile = dataDir + "IIFA/<name>";
 	writeBinaryValueFile(dataFile, results);
+}
+
+public void storeModel(M3 model) {
+	loc dataFile = dataDir + "M3/<name>";
+	writeBinaryValueFile(dataFile, model);
 }
 
 public tuple[rel[loc,int],int,int,int,real] retrieveLOC(){
@@ -115,31 +90,6 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] retrieveCC(){
 	//println("<results>");
 	
 	return results;
-
-}
-
-public rel[loc,loc] retrieveRBMI(){
-	loc dataFile = dataDir + "RBMI/<name>";
-	return readBinaryValueFile(#rel[loc,loc], dataFile);
-}
-
-public rel[loc, Modifier] retrieveRBMOD(){
-	loc dataFile = dataDir + "RBMOD/<name>";
-	return readBinaryValueFile(#rel[loc,Modifier], dataFile);
-}
-public rel[loc, loc] retrieveRBFA(){
-	loc dataFile = dataDir + "RBFA/<name>";
-	return readBinaryValueFile(#rel[loc,loc], dataFile);
-}
-
-public rel[loc, loc] retrieveRBEX(){
-	loc dataFile = dataDir + "RBEX/<name>";
-	return readBinaryValueFile(#rel[loc,loc], dataFile);
-}
-
-public rel[loc, loc] retrieveRBOV(){
-	loc dataFile = dataDir + "RBOV/<name>";
-	return readBinaryValueFile(#rel[loc,loc], dataFile);
 }
 
 public map[loc, map[loc,int]] retrieveIICC(){
@@ -150,4 +100,9 @@ public map[loc, map[loc,int]] retrieveIICC(){
 public map[loc, map[loc,int]] retrieveIIFA(){
 	loc dataFile = dataDir + "IIFA/<name>";
 	return readBinaryValueFile(#map[loc, map[loc,int]], dataFile);
+}
+
+public M3 retrieveModel() {
+	loc dataFile = dataDir + "M3/<name>";
+	return readBinaryValueFile(#M3, dataFile);
 }

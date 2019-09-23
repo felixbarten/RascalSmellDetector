@@ -28,11 +28,7 @@ datetime startTime = now();
 list[str] dataTypes = [
 	"CC", 
 	"LOC", 
-	"RBFA", 
-	"RBMI", 
-	"RBMOD", 
-	"RBEX", 
-	"RBOV", 
+	"M3",
 	"IICC", 
 	"IIFA"
 	];

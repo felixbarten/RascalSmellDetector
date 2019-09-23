@@ -79,12 +79,25 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	output("<prefix> Detecting Refused Bequest...");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
 	if(size(model.extends) == 0) output("extends is empty");
+	int recount = 0;
+	list[bool] classValid = [];
+	for(cls <- model.extends) {
+		classValid += classIsValid(cls);
+		if (recount < 5) {
+			println("<cls>");
+		}
+		recount += 1; 
+	}
+	if(true notin classValid) {
+		println("What gives!!!");
+	}
+	
 	for(cls <- model.extends, classIsValid(cls)) {
 		loc child = cls[0];
 		loc parent = cls[1];
 		// this step needs to be executed anyway so barely any performance loss for logging non-trivial classes.
 		bool notSimple = classIsNotSimple(child);
-		println("<notSimple>");
+		//println("<notSimple>");
 		if(notSimple) {		
 			debug("<child> is not a simple class");
 			nonTrivialClasses += child;
@@ -112,12 +125,6 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	
 	// unfortunately have to save a LARGE amount of data.... might have to refactor.
 	storeInformation(model, processed);
-	
-	if(model.fieldAccess == retrieveRBFA()) debug("FA is the same");
-	if(model.modifiers == retrieveRBMOD()) debug("mod is the same");
-	if(model.methodOverrides == retrieveRBOV()) debug("MO is the same");
-	if(model.methodInvocation == retrieveRBMI()) debug("MI is the same");
-	if(model.extends == retrieveRBEX()) debug("Extends is the same");
 
 	addProjectToReport(project, totalLOC, totalCC, size(detectedRBClasses));
 	
@@ -126,11 +133,7 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 
 void storeInformation(M3 model, bool processed) {
 	if(!processed) {
-		storeRBFA(model.fieldAccess);
-		storeRBMOD(model.modifiers);
-		storeRBMI(model.methodInvocation);
-		storeRBOV(model.methodOverrides);
-		storeRBEX(model.extends);
+		storeModel(model);
 	}
 }
 
