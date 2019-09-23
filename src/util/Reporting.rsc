@@ -24,6 +24,17 @@ bool logToProjectFiles = false;
 bool printAll = getPrintIntermediaryResults();
 bool initialized = false;
 datetime startTime = now();
+list[str] dataTypes = [
+	"CC", 
+	"LOC", 
+	"RBFA", 
+	"RBMI", 
+	"RBMOD", 
+	"RBEX", 
+	"RBOV", 
+	"IICC", 
+	"IIFA"
+	];
 
 public void startLog(loc directory = |home:///|) {
 	initializeDirectories(directory = directory);
@@ -55,32 +66,22 @@ public void initializeDirectories(loc directory = |home:///|) {
 	dataDir = dataDirectory;
 	reportsDir = reportsDirectory;
 	projectsDir = projectsDirectory;
+
+	if(!isDirectory(baseDir)) println("creating folder structure in: <resolveLocation(baseDir)>");
+	createDirectory(baseDir);
+	createDirectory(logDir);
+	createDirectory(reportsDir);
+	createDirectory(projectsDir);
+	createDirectory(dataDir);
 	
-	if(!isDirectory(baseDir)) {
-		println("creating folder structure in: <resolveLocation(baseDir)>");
-		mkDirectory(baseDir);
-		mkDirectory(logDir);
-		mkDirectory(reportsDir);
-		mkDirectory(projectsDir);
-		mkDirectory(dataDir);
-		// cc vals 
-		mkDirectory(dataDir + "CC/");
-		// loc vals
-		mkDirectory(dataDir + "LOC/");
-		// unlikely
-		mkDirectory(dataDir + "RBMOD/");
-		mkDirectory(dataDir + "RBMI/");
-		mkDirectory(dataDir + "RBFA/");
-		mkDirectory(dataDir + "RBOV/");
-		// unlikely
-		mkDirectory(dataDir + "IIFA/");
-		mkDirectory(dataDir + "IICC/");
-		// modifiers from model. 
-		mkDirectory(dataDir + "MOD/");
-		// invocation from model. 
-		mkDirectory(dataDir + "INV/");
-		// field access 
-		mkDirectory(dataDir + "FA/");
+	for (str val <- dataTypes) {
+		createDirectory(dataDir + "<val>/");
+	}
+}
+
+void createDirectory(loc directory) {
+	if(!isDirectory(directory)) {
+		mkDirectory(directory);
 	}
 }
 
@@ -277,4 +278,8 @@ public str convertIntervalToStr(interval i) {
 
 public loc getDataDirectory() {
 	return dataDir;
+}
+
+public list[str] getDataTypes() {
+	return dataTypes;
 }

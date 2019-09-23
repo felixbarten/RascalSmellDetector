@@ -7,6 +7,7 @@ import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 import util::Reporting;
+import util::DataStorage;
 
 str prefix = "[CC]";
 
@@ -74,7 +75,10 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClasse
 		avgWMC =(projectCC / size(classCC));
 	}
 	output("<prefix> Total project CC: <projectCC>");
-	return <CCMap, projectCC, avgWMC, avgAMW>;	
+	tuple[map[loc, tuple[int wmc, real amw]], int, int, real] results = <CCMap, projectCC, avgWMC, avgAMW>;
+	
+	storeCC(results);
+	return results;
 }
 
 // Parameter in tuple [loc compilationUnit, loc class]

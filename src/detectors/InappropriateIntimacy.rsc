@@ -77,7 +77,7 @@ public rel[loc,loc] detectII(M3 model){
 		}
 	}
 	// store data 
-	storeIIClassCalls(classCalls);
+	storeIICC(classCalls);
 	
 	//filtering for modfiers is not possible as some fields are accessible if they have no modifier.
 	// filtering out private and protected is an option though to increase performance
@@ -103,7 +103,7 @@ public rel[loc,loc] detectII(M3 model){
 		}
 	}
 	//store data
-	storeIIFieldAccess(classAccess);
+	storeIIFA(classAccess);
 	
 	// if A,b is in set is B,A also available?
 	for(tuple[loc a, loc b] s <- suspectedII, <s.b, s.a> in suspectedII) {
@@ -120,6 +120,11 @@ public rel[loc,loc] detectII(M3 model){
 	addIIResultsToReport(size(carrier(II)));
 	
 	return II;
+}
+
+// use processed data. 
+void detectII(M3 model, map[loc, map[loc,int]] iicc, map[loc, map[loc,int]] iifa) {
+	return;
 }
 
 public int calculateCINT() {

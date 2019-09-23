@@ -43,6 +43,26 @@ public void initialize(M3 model) {
 	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
 }
 
+//todo remove duplication.
+public void initialize(M3 model, 
+		tuple[rel[loc,int],int,int,int,real] LOC,
+		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
+	output("<prefix> Initializing RB detector");
+	linesOfCode = LOC;
+	complexity = CC;
+	
+	totalLOC = linesOfCode[1];
+	totalCC = complexity[1];
+	avgLOC = toReal(linesOfCode[4]);
+	avgCC = toReal(complexity[2]);
+	locMap = toMap(linesOfCode[0]);
+	ccMap = complexity[0];
+	avgAMW = complexity[3];
+	
+	printLinesOfCode(linesOfCode[0], totalLOC, avgLOC);
+	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
+}
+
 // detect RB using Lanza and Marinescu's metrics 
 public rel[loc,loc,bool] detectRB(M3 model, loc project) {	
 	// step 1: create AST from project.
@@ -87,16 +107,24 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project) {
 	
 	// unfortunately have to save a LARGE amount of data.... might have to refactor.
 	storeRBFA(model.fieldAccess);
-	//println("<#model.modifiers>");
-	
 	storeRBMOD(model.modifiers);
-	
 	storeRBMI(model.methodInvocation);
 	storeRBOV(model.methodOverrides);
+	storeRBEX(model.extends);
 	
 	addProjectToReport(project, totalLOC, totalCC, size(detectedRBClasses));
 	
 	return detectedRBClasses;
+}
+
+//use processed data
+rel[loc,loc,bool] detectRB(M3 model, 
+		loc project, 
+		tuple[rel[loc,int],int,int,int,real] LOC,
+		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
+	// to reuse code run initialization to set correct detector state.
+	initialize(model, LOC, CC);
+	return {};
 }
 
 // cls must have a superclass. And superclass needs to be accessible within the project. 

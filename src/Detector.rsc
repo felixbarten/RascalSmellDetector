@@ -48,16 +48,14 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 		initializeProject(project.file);
 		loc logFile = startProjectLog(project.file, subdir);
 		startTime = now();
-		M3 projectM3 = createM3FromDirectory(project);
-		
-		// report issues
-		for (message <- projectM3.messages) {
-			debug("<prefix> <message>");
+		// check datavault 
+		bool processed = checkProjectData(project);
+		if(!processed){
+			processProject(project);
+		} else {
+			output("Project <project.file> has already been processed. Retrieving data...");
+			reprocessProject(project);
 		}
-			
-		detectRB(projectM3, project);
-		detectII(projectM3);
-		
 		output("<prefix> Processed project: <project>");
 		endProjectLog(logFile, startTime);
 		count += 1;
@@ -67,6 +65,35 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 	output("<prefix> Detector ran: <convertIntervalToStr(Interval(mainTime, now()))>");
 	output("<prefix> End of detection process");
 	endProcessing();
+}
+
+void processProject(loc project) {
+	M3 projectM3 = createM3FromDirectory(project);
+	// report issues
+	for (message <- projectM3.messages) {
+		debug("<prefix> <message>");
+	}
+	detectRB(projectM3, project);
+	detectII(projectM3);
+}
+
+void reprocessProject(loc project) {
+	M3 model = emptyM3(project); 
+	model.modifiers = retrieveRBMOD();
+	model.methodInvocation = retrieveRBMI();
+	model.fieldAccess = retrieveRBFA();
+	model.methodOverrides = retrieveRBOV();
+	
+	LOC = retrieveLOC();
+	CC = retrieveCC();
+	IIFA = retrieveIIFA();
+	IICC = retrieveIICC();
+	
+	detectRB(model, project, LOC, CC);
+	detectII(model, IICC, IIFA);
+	
+	println("not implemented");
+	
 }
 
 // This method can be called for a single project.
