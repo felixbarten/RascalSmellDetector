@@ -53,7 +53,7 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 		if(!processed){
 			processProject(project);
 		} else {
-			output("Project <project.file> has already been processed. Retrieving data...");
+			output("[PROJ] Project <project.file> has already been processed. Retrieving data...");
 			reprocessProject(project);
 		}
 		output("<prefix> Processed project: <project>");
@@ -83,12 +83,18 @@ void reprocessProject(loc project) {
 	model.methodInvocation = retrieveRBMI();
 	model.fieldAccess = retrieveRBFA();
 	model.methodOverrides = retrieveRBOV();
-	model.extends = retrieveRBEX();
-	
-	print("<size(model.extends)>");
-	
+	model.extends = retrieveRBEX();	
+		
 	LOC = retrieveLOC();
 	CC = retrieveCC();
+	debug("<size(model.modifiers)>");
+	debug("<size(model.methodInvocation)>");
+	debug("<size(model.fieldAccess)>");
+	debug("<size(model.methodOverrides)>");
+	debug("<size(model.extends)>");
+	debug("CC: <size(CC[0])>");
+	debug("LOC: <size(LOC[0])>");
+	
 	IIFA = retrieveIIFA();
 	IICC = retrieveIICC();
 	

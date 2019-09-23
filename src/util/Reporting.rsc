@@ -13,6 +13,7 @@ import util::Settings;
 
 loc report = |tmp:///|;
 loc logFile = |tmp:///|;
+loc debugFile = |tmp:///|;
 loc additionalLogFile = |tmp:///|;
 loc documentRoot = |home:///|;
 loc projectsDir = |home:///log/projects|;
@@ -41,6 +42,10 @@ public void startLog(loc directory = |home:///|) {
 	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
 	logFile = logDir + "mainlog<fileName>";
 	writeFile(logFile, "Start of LogFile\n\n");
+	if(getDebuggingMode()) {
+		debugFile = logDir + "debug<fileName>";
+		if(!isFile(debugFile)) writeFile(debugFile, "Start of Debug LogFile\n\n");	
+	}
 	consoleEnabled = getConsoleMode();
 	logToProjectFiles = getProjectLogging();
 	startTime = now();
@@ -135,7 +140,7 @@ public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complex
 	
 	for(key <- complexityVals) {
 		tuple[int, real] comp = complexityVals[key];
-		if(printAll) output("Cls: <key> WMC: <comp[0]> AMW: <comp[1]>");
+		output("Cls: <key> WMC: <comp[0]> AMW: <comp[1]>", printAll);
 		compVals += <key, comp[0]>;
 	}
 	
@@ -145,6 +150,10 @@ public void printCyclomaticComplexity(map[loc, tuple[int wmc, real amw]] complex
 	output("[CC] Top <displaySize> highest CC classes: ", printAll);
 	printNFromList(sortedList, 10);
 	output("[CC] Total CC for project: <total>", printAll);
+} 
+
+public void printCyclomaticComplexity(tuple[map[loc, tuple[int wmc, real amw]], int, int, real] complexityVals) {
+	printCyclomaticComplexity(complexityVals[0], complexityVals[1], printAll = true);
 } 
 
 public void printLinesOfCode(rel[loc,int] classLOC, int totalLOC, real avgLOC) {
@@ -261,11 +270,19 @@ public void output(str msg, bool condition) {
 }
 
 public void debug(str msg) {
-	if(getDebugMode()) println("[DEBUG] <msg>");
+	if(getDebugMode()){
+		str msg = "[DEBUG] <msg>\n";
+		print(msg);
+		appendToFile(debugFile, msg);
+	}
 }
 
 public void debug(str msg, bool condition){
-	if(condition && getDebugMode()) println("[DEBUG] <msg>");
+	if(condition && getDebugMode()) {
+		println("[DEBUG] <msg>");
+		appendToFile(debugFile, msg + "\n");
+	}
+	
 }
 
 public str convertIntervalToStr(interval i) {

@@ -41,6 +41,7 @@ public rel[loc,loc] detectII(M3 model){
 	set[tuple[loc, loc]] suspectedFAII = {};
 	
 	output("<prefix> Detecting II...");
+	int count = 0;
 	for (tuple[loc from, loc to] cu <- model.methodInvocation, isFile(cu.to)) {
 		loc caller = cu.from.parent;
 		loc from = cu.from;
@@ -75,6 +76,10 @@ public rel[loc,loc] detectII(M3 model){
 		if(classCalls[caller][callee] > threshold) {
 			suspectedII += <caller, callee>;
 		}
+		count += 1;
+		if(count % 10000 == 0) {
+			output("[II] Processed <count> method invocations");
+		}
 	}
 	// store data 
 	storeIICC(classCalls);
@@ -104,6 +109,8 @@ public rel[loc,loc] detectII(M3 model){
 	}
 	//store data
 	storeIIFA(classAccess);
+	
+	II = checkSuspects(suspectedII);
 	output("<prefix> Finished II detection. Found <size(carrier(II))> II classes");
 	printII(II);
 	addIIResultsToReport(size(carrier(II)));

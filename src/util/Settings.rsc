@@ -38,6 +38,10 @@ public bool getDebugMode() {
 	return debugMode;
 }
 
+public bool getDebuggingMode() {
+	return debugMode;
+}
+
 public int getBequestOverrideThreshold() {
 	return overrideThreshold;
 }

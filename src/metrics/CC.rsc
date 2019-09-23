@@ -78,6 +78,9 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClasse
 	tuple[map[loc, tuple[int wmc, real amw]], int, int, real] results = <CCMap, projectCC, avgWMC, avgAMW>;
 	
 	storeCC(results);
+	if (results != retrieveCC()) {
+		debug("CC is not the same");
+	}
 	return results;
 }
 

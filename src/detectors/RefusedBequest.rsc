@@ -14,7 +14,6 @@ import util::Settings;
 import util::DataStorage;
 import analysis::graphs::Graph;
 
-bool initialized = false;
 real avgLOC = 0.0;
 real avgCC = 0.0;
 real avgAMW = 0.0;
@@ -61,58 +60,58 @@ public void initialize(M3 model,
 	
 	printLinesOfCode(linesOfCode[0], totalLOC, avgLOC);
 	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
-	initialized = true;
 	output("<prefix> RB detector state restored.");
 }
 
 // detect RB using Lanza and Marinescu's metrics 
-public rel[loc,loc,bool] detectRB(M3 model, loc project) {	
+public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false) {	
 	// step 1: create AST from project.
 	// step 2a: visit classes to see if they have a superclass. If not skip. 
 	// Step 2b If they do have a superclass can we access it or is it a default library?
 	// Step 3: perform analysis on parent and child. 
-	if(!initialized) initialize(model);
+	if(!processed) initialize(model);
 	output("<prefix> Detector starting for project");
 	rel[loc,loc,bool] detectedRBClasses = {};
 	rel[loc,loc,bool] RBCandidates = {};
 	list[loc] nonTrivialClasses = [];
 	bool RB = false;
-	
+	int count = 0;
 	output("<prefix> Detecting Refused Bequest...");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
+	if(size(model.extends) == 0) output("extends is empty");
 	for(cls <- model.extends, classIsValid(cls)) {
 		loc child = cls[0];
 		loc parent = cls[1];
-		
+		// this step needs to be executed anyway so barely any performance loss for logging non-trivial classes.
 		bool notSimple = classIsNotSimple(child);
-		bool bequest = classIgnoresBequest(model, child, parent);
+		println("<notSimple>");
 		if(notSimple) {		
 			debug("<child> is not a simple class");
 			nonTrivialClasses += child;
 		}
-		RB = notSimple && bequest;
+		// crucial for performance to only perform second calculation if class is not simple (3x the processing time without(or more)
+		RB = notSimple && classIgnoresBequest(model, child, parent);
 		tuple[loc,loc,bool] temp =<child, parent, RB>;
-		RBCandidates += temp;
 		
 		if(RB) {
 			detectedRBClasses  += temp;
 			debug("RB: <temp>");
 		}
+		count += 1; 
+		if(count % 250 == 0) {
+			output("<prefix> Processed <count> classes");
+		}
 	}
 	output("<prefix> Finished detecting Refused Bequest.");
 	
 
-	output("<prefix> Number of RB candidates: <size(RBCandidates)> ");
+	output("<prefix> Number of RB candidates: <count> ");
 	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
 	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
 	printRB(detectedRBClasses, nonTrivialClasses);
 	
 	// unfortunately have to save a LARGE amount of data.... might have to refactor.
-	storeRBFA(model.fieldAccess);
-	storeRBMOD(model.modifiers);
-	storeRBMI(model.methodInvocation);
-	storeRBOV(model.methodOverrides);
-	storeRBEX(model.extends);
+	storeInformation(model, processed);
 	
 	if(model.fieldAccess == retrieveRBFA()) debug("FA is the same");
 	if(model.modifiers == retrieveRBMOD()) debug("mod is the same");
@@ -125,6 +124,16 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project) {
 	return detectedRBClasses;
 }
 
+void storeInformation(M3 model, bool processed) {
+	if(!processed) {
+		storeRBFA(model.fieldAccess);
+		storeRBMOD(model.modifiers);
+		storeRBMI(model.methodInvocation);
+		storeRBOV(model.methodOverrides);
+		storeRBEX(model.extends);
+	}
+}
+
 //use processed data
 rel[loc,loc,bool] detectRB(M3 model, 
 		loc project, 
@@ -132,7 +141,7 @@ rel[loc,loc,bool] detectRB(M3 model,
 		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
 	// to reuse code run initialization to set correct detector state.
 	initialize(model, LOC, CC);
-	return detectRB(model, project);
+	return detectRB(model, project, processed = true);
 }
 
 // cls must have a superclass. And superclass needs to be accessible within the project. 

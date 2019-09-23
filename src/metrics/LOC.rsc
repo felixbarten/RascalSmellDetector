@@ -29,7 +29,6 @@ public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
 	
 	tuple[rel[loc,int],int,int,int,real] results = <classLOC, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCContainer))>; 
 	storeLOC(results);
-	
 	return results;
 }
 
@@ -84,7 +83,7 @@ public tuple[int locNum, int blank, int comments] getLOC(loc location, bool prin
 			LOC += 1;
 			
 		}else if (/^\s*\/\*\*?[\w\s\?\@]*\*\/$/ := line) {
-			debug("single line multiline:  <line>");
+			debug("single line multiline:  <line>", printAll);
 			comments += 1;
 		}  else if (/\s*\/\*[\w\s]*\*\/[\s\w]+/ := line) {
 				debug("multiline with code: <line>", printAll);

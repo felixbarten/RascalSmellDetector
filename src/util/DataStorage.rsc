@@ -111,7 +111,11 @@ public tuple[rel[loc,int],int,int,int,real] retrieveLOC(){
 
 public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] retrieveCC(){
 	loc dataFile = dataDir + "CC/<name>";
-	return readBinaryValueFile(#tuple[map[loc, tuple[int wmc, real amw]], int, int, real], dataFile);
+	 tuple[map[loc, tuple[int wmc, real amw]], int, int, real] results = readBinaryValueFile(#tuple[map[loc, tuple[int wmc, real amw]], int, int, real], dataFile);
+	//println("<results>");
+	
+	return results;
+
 }
 
 public rel[loc,loc] retrieveRBMI(){
