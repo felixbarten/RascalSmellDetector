@@ -7,6 +7,7 @@ import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 import util::Settings;
 import util::Reporting;
+import util::DataStorage;
 
 int threshold = 0;
 bool debugMode = false; 
@@ -70,10 +71,14 @@ public rel[loc,loc] detectII(M3 model){
 			classCalls[caller][callee] = 0;
 		}
 		classCalls[caller][callee] += 1;
+			
 		if(classCalls[caller][callee] > threshold) {
 			suspectedII += <caller, callee>;
 		}
 	}
+	// store data 
+	storeIIClassCalls(classCalls);
+	
 	//filtering for modfiers is not possible as some fields are accessible if they have no modifier.
 	// filtering out private and protected is an option though to increase performance
 	for (tuple[loc from, loc to] cu <- model.fieldAccess, isFile(cu.to)) {
@@ -97,6 +102,9 @@ public rel[loc,loc] detectII(M3 model){
 			suspectedFAII += <caller, callee>;
 		}
 	}
+	//store data
+	storeIIFieldAccess(classAccess);
+	
 	// if A,b is in set is B,A also available?
 	for(tuple[loc a, loc b] s <- suspectedII, <s.b, s.a> in suspectedII) {
 		//filter out dupes. 

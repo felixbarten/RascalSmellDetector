@@ -11,6 +11,9 @@ import metrics::LOC;
 import metrics::CC;
 import util::Reporting;
 import util::Settings;
+import util::DataStorage;
+import analysis::graphs::Graph;
+
 
 real avgLOC = 0.0;
 real avgCC = 0.0;
@@ -81,6 +84,15 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project) {
 	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
 	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
 	printRB(detectedRBClasses, nonTrivialClasses);
+	
+	// unfortunately have to save a LARGE amount of data.... might have to refactor.
+	storeRBFA(model.fieldAccess);
+	//println("<#model.modifiers>");
+	
+	storeRBMOD(model.modifiers);
+	
+	storeRBMI(model.methodInvocation);
+	storeRBOV(model.methodOverrides);
 	
 	addProjectToReport(project, totalLOC, totalCC, size(detectedRBClasses));
 	

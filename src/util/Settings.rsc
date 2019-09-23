@@ -11,6 +11,7 @@ int couplingThreshold = 3;
 bool consoleMode = true;
 bool logToProjectLogs = true;
 bool results = false;
+bool storeData = true;
 
 public void setDebugMode(bool b) {
 	if(b) println("Debugging mode is now enabled");
@@ -27,6 +28,10 @@ public void setProjectLogging(bool b) {
 
 public void setPrintIntermediaryResults(bool b) {
 	results = b;
+}
+
+public void setStoreData(bool b) {
+	storeData = b;
 }
 
 public bool getDebugMode() {
@@ -55,4 +60,8 @@ public int getCouplingThreshold() {
 
 public bool getPrintIntermediaryResults() {
 	return results;
+}
+
+public bool getStoreData() {
+	return storeData;
 }

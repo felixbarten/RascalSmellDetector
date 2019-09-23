@@ -3,6 +3,7 @@ module metrics::LOC
 import Prelude;
 import util::Math;
 import util::Reporting;
+import util::DataStorage;
 import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
@@ -26,7 +27,10 @@ public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
 	totalLOC = getTotalLOC(LOCContainer);
 	output("<prefix> Total project LOC: <totalLOC[0]>");
 	
-	return <classLOC, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCContainer))>; 
+	tuple[rel[loc,int],int,int,int,real] results = <classLOC, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCContainer))>; 
+	storeLOC(results);
+	
+	return results;
 }
 
 public real getAvgLOC(int totalLOC, int numberOfFiles) {

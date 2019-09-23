@@ -4,6 +4,7 @@ import Prelude;
 import util::FileHandling;
 import util::Reporting;
 import util::Settings;
+import util::DataStorage;
 import metrics::LOC;
 import metrics::CC;
 import detectors::RefusedBequest;
@@ -16,23 +17,24 @@ import lang::java::jdt::m3::AST;
 public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
 
-private void initialize(bool debugging, bool projectLogging, bool enableConsole, bool printAll) {
+private void initialize(bool debugging, bool projectLogging, bool enableConsole, bool printAll, bool dataStorage) {
 	setDebugMode(debugging);
 	setProjectLogging(projectLogging);
 	setConsoleMode(enableConsole);
 	setPrintIntermediaryResults(printAll);
+	setStoreData(dataStorage);
+
+	startProcessing();
 }
 
-public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true, bool results = false) {
+public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true, bool results = false, bool dataStorage = true) {
 	if(!isDirectory(directory)) {
 		println("<directory> is not a directory!");
 		return;
 	}
-	initialize(debugging, projectLogging, console, results);
+	initialize(debugging, projectLogging, console, results, dataStorage);
 	mainTime = now();
-	
 
-	startProcessing();
 	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
 	output("<prefix> Starting detection process");
 	
@@ -43,6 +45,7 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 	int projectNum = size(projects);
 	for (project <- projects) {
 		output("<prefix> Processing project <count> of <projectNum>: <project>");
+		initializeProject(project.file);
 		loc logFile = startProjectLog(project.file, subdir);
 		startTime = now();
 		M3 projectM3 = createM3FromDirectory(project);
@@ -98,6 +101,7 @@ public void detectProject(loc project) {
 
 // start is a keyword??
 public void startProcessing() {
+	initializeDS();
 	startLog();
 	startReport();
 }

@@ -14,6 +14,11 @@ import util::Settings;
 loc report = |tmp:///|;
 loc logFile = |tmp:///|;
 loc additionalLogFile = |tmp:///|;
+loc documentRoot = |home:///|;
+loc projectsDir = |home:///log/projects|;
+loc dataDir = |home:///data|;
+loc logDir = |home:///log|;
+loc reportsDir = |home:///log/reports|;
 bool consoleEnabled = true;
 bool logToProjectFiles = false;
 bool printAll = getPrintIntermediaryResults();
@@ -31,24 +36,57 @@ public void startLog(loc directory = |home:///|) {
 	initialized = true;
  }
 
-// create directories 
-// log
-// 		reports
-//		projects
-void initializeDirectories(loc directory = |home:///|) {
-	loc logDir = directory + "log/";
-	loc reportsDir = logDir + "reports/";
-	loc projectsDir = logDir + "projects/";
-	if(!isDirectory(logDir)) {
+// create directories
+// rascaldetector
+// 		data
+// 			<data folders>
+// 		log
+// 			reports
+//			projects
+public void initializeDirectories(loc directory = |home:///|) {
+	loc baseDirectory = directory + "rascaldetector/";
+	loc logDirectory = baseDirectory + "log/";
+	loc dataDirectory = baseDirectory + "data/";
+	loc reportsDirectory = logDirectory + "reports/";
+	loc projectsDirectory = logDirectory + "projects/";
+	// set globals
+	baseDir = baseDirectory;
+	logDir = logDirectory;
+	dataDir = dataDirectory;
+	reportsDir = reportsDirectory;
+	projectsDir = projectsDirectory;
+	
+	if(!isDirectory(baseDir)) {
+		println("creating folder structure in: <resolveLocation(baseDir)>");
+		mkDirectory(baseDir);
 		mkDirectory(logDir);
 		mkDirectory(reportsDir);
 		mkDirectory(projectsDir);
+		mkDirectory(dataDir);
+		// cc vals 
+		mkDirectory(dataDir + "CC/");
+		// loc vals
+		mkDirectory(dataDir + "LOC/");
+		// unlikely
+		mkDirectory(dataDir + "RBMOD/");
+		mkDirectory(dataDir + "RBMI/");
+		mkDirectory(dataDir + "RBFA/");
+		mkDirectory(dataDir + "RBOV/");
+		// unlikely
+		mkDirectory(dataDir + "IIFA/");
+		mkDirectory(dataDir + "IICC/");
+		// modifiers from model. 
+		mkDirectory(dataDir + "MOD/");
+		// invocation from model. 
+		mkDirectory(dataDir + "INV/");
+		// field access 
+		mkDirectory(dataDir + "FA/");
 	}
 }
 
 public void startReport() {
 	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
-	report = |home:///log/reports| + "report<fileName>";
+	report = reportsDir + "report<fileName>";
 	if(!isFile(report)) {
 		writeFile(report, "Start of Report <fileName>\n\n");
 	}
@@ -70,7 +108,7 @@ public void endLog() {
 
 // creates a logFile and returns the loc. 
 public loc startProjectLog(str name, str subdir) {
-	loc logLoc = |home:///log/projects/|;
+	loc logLoc = projectsDir;
 	logLoc = logLoc + "<subdir>/<name>";
 	writeFile(logLoc, "Start of project: <name> log");
 	// override 
@@ -235,4 +273,8 @@ public str convertIntervalToStr(interval i) {
 		return "<duration.days> days and <duration.hours>:<duration.minutes>:<duration.seconds>";
 	}
 	return "<duration.hours>:<duration.minutes>:<duration.seconds>";
+}
+
+public loc getDataDirectory() {
+	return dataDir;
 }
