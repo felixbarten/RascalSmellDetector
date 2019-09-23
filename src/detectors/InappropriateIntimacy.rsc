@@ -104,27 +104,47 @@ public rel[loc,loc] detectII(M3 model){
 	}
 	//store data
 	storeIIFA(classAccess);
-	
-	// if A,b is in set is B,A also available?
-	for(tuple[loc a, loc b] s <- suspectedII, <s.b, s.a> in suspectedII) {
-		//filter out dupes. 
-		if(s notin II && <s.b, s.a> notin II) {
-			II += s;
-			output("<prefix> Detected II classes: <s.a.path> & <s.b.path>", printAll);
-		}
-	}
 	output("<prefix> Finished II detection. Found <size(carrier(II))> II classes");
-		
-	
 	printII(II);
 	addIIResultsToReport(size(carrier(II)));
 	
 	return II;
 }
 
+rel[loc,loc] checkSuspects(set[tuple[loc,loc]] suspects) {
+	rel[loc,loc] II = {};
+	// if A,b is in set is B,A also available?
+	for(tuple[loc a, loc b] s <- suspects, <s.b, s.a> in suspects) {
+		//filter out dupes. 
+		if(s notin II && <s.b, s.a> notin II) {
+			II += s;
+			output("<prefix> Detected II classes: <s.a.path> & <s.b.path>", printAll);
+		}
+	}
+	return II;
+}
+	
+
 // use processed data. 
-void detectII(M3 model, map[loc, map[loc,int]] iicc, map[loc, map[loc,int]] iifa) {
-	return;
+public rel[loc,loc] detectII(M3 model, map[loc, map[loc,int]] iicc, map[loc, map[loc,int]] iifa) {
+	initialize();
+	rel[loc,loc] II = {};
+	set[tuple[loc, loc]] suspectedII = {};
+	set[tuple[loc, loc]] suspectedFAII = {};
+	
+	// loop through maps
+	for (caller <- iicc) {
+		for(callee <- iicc[caller]) {
+			if(iicc[caller][callee] > threshold) {
+				suspectedII += <caller, callee>;
+			}
+		}
+	}
+	II = checkSuspects(suspectedII);
+	output("<prefix> Finished II detection. Found <size(carrier(II))> II classes");
+	printII(II);
+	addIIResultsToReport(size(carrier(II)));
+	return II;
 }
 
 public int calculateCINT() {

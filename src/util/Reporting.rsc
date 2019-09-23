@@ -39,7 +39,7 @@ list[str] dataTypes = [
 public void startLog(loc directory = |home:///|) {
 	initializeDirectories(directory = directory);
 	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
-	logFile = directory + "mainlog<fileName>";
+	logFile = logDir + "mainlog<fileName>";
 	writeFile(logFile, "Start of LogFile\n\n");
 	consoleEnabled = getConsoleMode();
 	logToProjectFiles = getProjectLogging();

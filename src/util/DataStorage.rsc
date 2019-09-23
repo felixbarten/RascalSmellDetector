@@ -19,7 +19,7 @@ str name = "default";
 
 public void initializeDS(loc dir = |home://data|) {
 	if(!enabled && initialized) return;
-	println("Initializing data storage");
+	//println("Initializing data storage");
 	initializeDirectories();
 	initialized = true;
 	dataDir = getDataDirectory();
@@ -57,7 +57,6 @@ public void storeLOC(tuple[rel[loc,int],int,int,int,real] results){
 	debug("Storing LOC data");
 	if(!enabled) return;
 	loc dataFile = dataDir + "LOC/<name>";
-	println("<resolveLocation(dataFile)>");
 	writeBinaryValueFile(dataFile, results);
 }
 

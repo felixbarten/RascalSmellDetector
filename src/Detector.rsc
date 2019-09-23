@@ -83,6 +83,9 @@ void reprocessProject(loc project) {
 	model.methodInvocation = retrieveRBMI();
 	model.fieldAccess = retrieveRBFA();
 	model.methodOverrides = retrieveRBOV();
+	model.extends = retrieveRBEX();
+	
+	print("<size(model.extends)>");
 	
 	LOC = retrieveLOC();
 	CC = retrieveCC();
@@ -90,10 +93,7 @@ void reprocessProject(loc project) {
 	IICC = retrieveIICC();
 	
 	detectRB(model, project, LOC, CC);
-	detectII(model, IICC, IIFA);
-	
-	println("not implemented");
-	
+	detectII(model, IICC, IIFA);	
 }
 
 // This method can be called for a single project.

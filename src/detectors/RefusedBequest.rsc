@@ -14,7 +14,7 @@ import util::Settings;
 import util::DataStorage;
 import analysis::graphs::Graph;
 
-
+bool initialized = false;
 real avgLOC = 0.0;
 real avgCC = 0.0;
 real avgAMW = 0.0;
@@ -61,6 +61,8 @@ public void initialize(M3 model,
 	
 	printLinesOfCode(linesOfCode[0], totalLOC, avgLOC);
 	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
+	initialized = true;
+	output("<prefix> RB detector state restored.");
 }
 
 // detect RB using Lanza and Marinescu's metrics 
@@ -69,7 +71,7 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project) {
 	// step 2a: visit classes to see if they have a superclass. If not skip. 
 	// Step 2b If they do have a superclass can we access it or is it a default library?
 	// Step 3: perform analysis on parent and child. 
-	initialize(model);
+	if(!initialized) initialize(model);
 	output("<prefix> Detector starting for project");
 	rel[loc,loc,bool] detectedRBClasses = {};
 	rel[loc,loc,bool] RBCandidates = {};
@@ -112,6 +114,12 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project) {
 	storeRBOV(model.methodOverrides);
 	storeRBEX(model.extends);
 	
+	if(model.fieldAccess == retrieveRBFA()) debug("FA is the same");
+	if(model.modifiers == retrieveRBMOD()) debug("mod is the same");
+	if(model.methodOverrides == retrieveRBOV()) debug("MO is the same");
+	if(model.methodInvocation == retrieveRBMI()) debug("MI is the same");
+	if(model.extends == retrieveRBEX()) debug("Extends is the same");
+
 	addProjectToReport(project, totalLOC, totalCC, size(detectedRBClasses));
 	
 	return detectedRBClasses;
@@ -124,7 +132,7 @@ rel[loc,loc,bool] detectRB(M3 model,
 		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
 	// to reuse code run initialization to set correct detector state.
 	initialize(model, LOC, CC);
-	return {};
+	return detectRB(model, project);
 }
 
 // cls must have a superclass. And superclass needs to be accessible within the project. 
