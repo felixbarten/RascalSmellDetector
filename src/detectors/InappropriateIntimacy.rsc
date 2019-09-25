@@ -15,7 +15,6 @@ bool printAll = false;
 str prefix = "[II]";
 
 public void initialize() {
-	output("<prefix> Initializing...");
 	threshold = getCouplingThreshold();
 	debugMode = getDebugMode();
 	printAll =  getPrintIntermediaryResults();
@@ -25,7 +24,7 @@ public void initialize() {
 // In the book Intensive Coupling is defined which is not the same as the Inappropriate Intimacy smell however. 
 public rel[loc,loc] detectII(M3 model){	
 	// 1. loop through method calls in project. 
-	// 2. check if the callee is a valid file in the project otherwise discard. 
+	// 2. check if the callee is a valid(accessible) file in the project otherwise discard. 
 	// 3. count calls for every class. to other classes. 
 	// 4. check gathered classes to see if they have more calls than the threshold.
 	// 5. perform 1-4 for field access 
@@ -49,7 +48,7 @@ public rel[loc,loc] detectII(M3 model){
 		loc caller = cu.from.parent;
 		loc from = cu.from;
 		// convert to classes for comparison.
-		// it should be a method calling a method so loc.parent shoud return the class. 
+		// it should be a method calling a method so loc.parent should return the class. 
 		caller.scheme = "java+class";
 		loc callee = cu.to.parent;
 		loc to = cu.to;
@@ -123,7 +122,7 @@ public rel[loc,loc] detectII(M3 model){
 
 rel[loc,loc] checkSuspects(set[tuple[loc,loc]] suspects) {
 	rel[loc,loc] II = {};
-	// if A,b is in set is B,A also available?
+	// if A,B is in set is B,A also available?
 	for(tuple[loc a, loc b] s <- suspects, <s.b, s.a> in suspects) {
 		//filter out dupes. 
 		if(s notin II && <s.b, s.a> notin II) {

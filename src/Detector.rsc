@@ -87,13 +87,19 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 }
 
 void processProject(loc project) {
-	M3 projectM3 = createM3FromDirectory(project);
+	M3 model = emptyM3(project);
+	if(project.scheme == "project") {
+		model = createM3FromEclipseProject(project);
+	} else {
+		model = createM3FromDirectory(project);
+	}
 	// report issues
-	for (message <- projectM3.messages) {
+	for (message <- model.messages) {
 		debug("<prefix> <message>");
 	}
-	detectRB(projectM3, project);
-	detectII(projectM3);
+		
+	detectRB(model, project);
+	detectII(model);
 }
 
 void reprocessProject(loc project) {		
@@ -123,7 +129,7 @@ public void detectProject(loc project) {
 	}
 	N = now();
 	str subdir = printDateTime(N, "yyyy-MM-dd___HH_mm");
-	startProcessing(); 
+	startProcessing(false); 
 	if(getProjectLogging()) {
 		startProjectLog(project.authority, subdir);
 	}
@@ -131,7 +137,7 @@ public void detectProject(loc project) {
 	
 	bool processed = checkProjectData(project);
 	if(!processed){
-		processEclipseProject(project);
+		processProject(project);
 	} else {
 		output("[PROJ] Project <project.file> has already been processed. Retrieving data...");
 		reprocessProject(project);
@@ -142,27 +148,15 @@ public void detectProject(loc project) {
 	endProcessing();
 }
 
-void processEclipseProject(loc project) {
-	M3 model = createM3FromEclipseProject(project);
-		
-	// report issues
-	for (message <- model.messages) {
-		debug("<prefix> <message>");
-	}
-		
-	detectRB(model, project);
-	detectII(model);
-}
-
-// this method will execute main() iteration squared number of times. VERY time consuming!
-void gatherDataSet(loc directory, int iterations = 5) {
+// this method will execute main() (iteration - 1)^2 number of times. VERY time consuming!
+void gatherDataSet(loc directory, int min = 1, int max = 5) {
 	println("Gathering dataset...");
 	N = now();
 	int count = 0;
-	for (int i <- [1..iterations]) {
-		for(int j <- [1..iterations]) {
+	for (int i <- [min..max]) {
+		for(int j <- [min..max]) {
 			datetime loop = now();
-			println("Running with setting: <i>,<j>");
+			println("Running with setting: override: <i>, protected members: <j>");
 			setOverrideThreshold(i);
 			setProtectedMemberThreshold(j);
 			setCouplingThreshold(i);
@@ -179,7 +173,7 @@ void gatherDataSet(loc directory, int iterations = 5) {
 			}
 			main(directory, console = false, oneReport = true);
 			count += 1; 
-			println("Run <count> took: <convertIntervalToStr(loop)>");
+			println("Run <count> took: <convertIntervalToStr(loop)>. Total time: <convertIntervalToStr(N)>");
 		}
 	}
 	println("Finished dataset in: <convertIntervalToStr(N)>");
@@ -200,4 +194,8 @@ public void s2() {
 
 public void s3() {
 	gatherDataSet(|home:///projects/Systems3|);
+}
+
+public void s4() {
+	main(|home:///projects/Systems3|);
 }

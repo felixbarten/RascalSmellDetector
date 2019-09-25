@@ -8,7 +8,7 @@ import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 
-
+// returns list of directories in root directory.
 public list[loc] gatherProjects(loc directory) {
 	if (!isDirectory(directory)) 
 		return [];

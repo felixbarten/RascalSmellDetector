@@ -35,7 +35,9 @@ list[str] dataTypes = [
 
 public void startLog(loc directory = |home:///|) {
 	initializeDirectories(directory = directory);
-	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
+	// printing in locale doesnt fix the 2 hours discrepancy
+	datetime dt = incrementHours(now(), 2);
+	str fileName = printDateTime(dt, "yyyy-MM-dd__HH_mm");
 	logFile = logDir + "mainlog<fileName>";
 	writeFile(logFile, "Start of LogFile\n\n");
 	if(getDebuggingMode()) {
@@ -87,7 +89,9 @@ void createDirectory(loc directory) {
 }
 
 public void startReport() {
-	str fileName = printDateTime(now(), "yyyy-MM-dd__HH_mm");
+	// not sure what timezone this is. 
+	datetime dt = incrementHours(now(), 2);
+	str fileName = printDateTimeInLocale(dt, "yyyy-MM-dd__HH_mm_ss", "Europe/Netherlands");
 	report = reportsDir + "report<fileName>";
 	if(!isFile(report)) {
 		writeFile(report, "Start of Report <fileName>\n\n");
@@ -320,11 +324,7 @@ public str convertIntervalToStr(interval i) {
 }
 
 public str convertIntervalToStr(datetime dt) {
-	Duration duration = createDuration(Interval(dt, now()));
-	if (duration.days > 0) { 
-		return "<duration.days> days and <duration.hours>:<duration.minutes>:<duration.seconds>";
-	}
-	return "<duration.hours>:<duration.minutes>:<duration.seconds>";
+	return convertIntervalToStr(Interval(dt, now()));
 }
 
 public loc getDataDirectory() {

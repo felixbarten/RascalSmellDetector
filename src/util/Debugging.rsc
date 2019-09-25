@@ -61,12 +61,3 @@ public void disseminateM3ModelToFile(M3 m, loc fileLoc = |home:///log/modellog|,
 		writeFile(modelFile, m);
 	}
 }
-
-
-public void showCompilationUnitModel(M3 model) {
-	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit") {
-			println();
-			println("<cu>");
-			println();
-		}
-}

@@ -2,7 +2,7 @@ module util::Settings
 
 import Prelude;
 
-// purpose of this module is to set thresholds for locations in a central location. 
+// purpose of this module is to set settings in a central location. 
 
 // [detector]
 bool debugMode = false;

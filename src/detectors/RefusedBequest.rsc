@@ -19,48 +19,35 @@ real avgCC = 0.0;
 real avgAMW = 0.0;
 int totalCC = 0;
 int totalLOC = 0;
-tuple[map[loc, tuple[int wmc, real amw]], int, int, real] complexity = <(), 0,0, 0.0>;
-tuple[rel[loc,int], int,int,int,real] linesOfCode = <{}, 0,0,0,0.0>;
 map[loc, set[int]] locMap = ();
 map[loc, tuple[int wmc, real amw]] ccMap = ();
 str prefix = "[RB]";
 
 public void initialize(M3 model) {
-	output("<prefix> Initializing RB detector");
-	linesOfCode = calculateLOC(model);
-	complexity = calculateClassesCC(model);
-	
-	totalLOC = linesOfCode[1];
-	totalCC = complexity[1];
-	avgLOC = toReal(linesOfCode[4]);
-	avgCC = toReal(complexity[2]);
-	locMap = toMap(linesOfCode[0]);
-	ccMap = complexity[0];
-	avgAMW = complexity[3];
-	
-	printLinesOfCode(linesOfCode[0], totalLOC, avgLOC);
-	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
+	output("<prefix> Initializing RB detector...");
+	setGlobalVars(calculateLOC(model), calculateClassesCC(model));
 }
 
-//todo remove duplication.
 public void initialize(M3 model, 
 		tuple[rel[loc,int],int,int,int,real] LOC,
 		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
-	output("<prefix> Initializing RB detector");
-	linesOfCode = LOC;
-	complexity = CC;
-	
-	totalLOC = linesOfCode[1];
-	totalCC = complexity[1];
-	avgLOC = toReal(linesOfCode[4]);
-	avgCC = toReal(complexity[2]);
-	locMap = toMap(linesOfCode[0]);
-	ccMap = complexity[0];
-	avgAMW = complexity[3];
-	
-	printLinesOfCode(linesOfCode[0], totalLOC, avgLOC);
-	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
+	setGlobalVars(LOC, CC);
 	output("<prefix> RB detector state restored.");
+}
+
+void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
+		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
+		
+	totalLOC = LOC[1];
+	totalCC = CC[1];
+	avgLOC = toReal(LOC[4]);
+	avgCC = toReal(CC[2]);
+	locMap = toMap(LOC[0]);
+	ccMap = CC[0];
+	avgAMW = CC[3];
+	
+	printLinesOfCode(LOC[0], totalLOC, avgLOC);
+	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
 }
 
 // detect RB using Lanza and Marinescu's metrics 
@@ -83,7 +70,6 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 		loc parent = cls[1];
 		// this step needs to be executed anyway so barely any performance loss for logging non-trivial classes.
 		bool notSimple = classIsNotSimple(child);
-		//println("<notSimple>");
 		if(notSimple) {		
 			debug("<child> is not a simple class");
 			nonTrivialClasses += child;
@@ -103,7 +89,6 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	}
 	output("<prefix> Finished detecting Refused Bequest.");
 	
-
 	output("<prefix> Number of RB candidates: <count> ");
 	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
 	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
@@ -120,13 +105,6 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 void storeInformation(M3 model, bool processed) {
 	if(!processed) {
 		storeModel(model);
-		output("<model.id>");
-		
-		M3 m2 = retrieveModel();
-		output("<m2.id>");
-		if(model != m2) {
-			output("Data storage encountered an error.");
-		}
 	}
 }
 
@@ -145,14 +123,8 @@ bool classIsValid(tuple[loc, loc] classes) {
 	return isFile(classes[0])  && isFile(classes[1]);
 }
 
-//
 bool classIgnoresBequest(M3 model, loc child, loc parent) {
-	// for debugging to make sure all the code paths are executed (overrides would be skipped if the first conditon is true otherwise).
-	bool protected = parentHasProtectedMembers(model, parent);
-	bool childBequest = childRefusesBequest(model, child, parent);
-	bool overrides = childHasFewOverrides(model, child);
-
-	return (protected && childBequest) || overrides;
+	return (parentHasProtectedMembers(model, parent) && childRefusesBequest(model, child, parent)) || childHasFewOverrides(model, child);
 }
 
 bool parentHasProtectedMembers(M3 model, loc parent) { 
@@ -212,7 +184,6 @@ bool childHasFewOverrides(M3 model, loc child) {
 	for (ov <- model.methodOverrides){ 	
 		// compare whole path partial names give too many matches especially with certain naming conventions. 
 		if(classPath == (ov[0].parent.path)){ 
-			// do stuff here 
 			overrides += ov; 
 			// either filter more here or do it in another loop. 
 		}
@@ -250,7 +221,6 @@ bool classComplexityAbvAvg(loc cls) {
 bool classSizeAbvAvg(loc cls) {
 	int clsLOC = 0;
 	if (cls in locMap){
-		//output("Class already has a loc value <max(locMap[cls])>");
 		clsLOC = max(locMap[cls]);
 	} else {
 		debug("Class size value not found in lines of code");
