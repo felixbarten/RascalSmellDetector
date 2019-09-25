@@ -17,33 +17,41 @@ import analysis::m3::Registry;
 
 public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
+bool reportInitialized = false;
 
-private void initialize(bool debugging, bool projectLogging, bool enableConsole, bool printAll, bool dataStorage) {
+private void initialize(bool debugging, bool projectLogging, bool enableConsole, bool printAll, bool dataStorage, bool oneReport) {
 	setDebugMode(debugging);
 	setProjectLogging(projectLogging);
 	setConsoleMode(enableConsole);
 	setPrintIntermediaryResults(printAll);
 	setStoreData(dataStorage);
 
-	startProcessing();
+	startProcessing(oneReport);
 }
 
-public void startProcessing() {
+public void startProcessing(bool oneReport) {
 	initializeDS();
 	startLog();
-	startReport();
+	// don't start a new report file if 
+	if(oneReport) {
+		if(!reportInitialized) 
+			startReport();
+			reportInitialized = true;
+	} else {
+		startReport();
+	}
 }
 
 public void endProcessing() {
 	endLog();
 }
 
-public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true, bool results = false, bool dataStorage = true) {
+public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true, bool results = false, bool dataStorage = true, bool oneReport = false) {
 	if(!isDirectory(directory)) {
 		println("<directory> is not a directory!");
 		return;
 	}
-	initialize(debugging, projectLogging, console, results, dataStorage);
+	initialize(debugging, projectLogging, console, results, dataStorage, oneReport);
 	mainTime = now();
 
 	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
@@ -135,26 +143,61 @@ public void detectProject(loc project) {
 }
 
 void processEclipseProject(loc project) {
-	M3 projectM3 = createM3FromEclipseProject(project);
+	M3 model = createM3FromEclipseProject(project);
 		
 	// report issues
-	for (message <- projectM3.messages) {
+	for (message <- model.messages) {
 		debug("<prefix> <message>");
 	}
 		
-	detectRB(projectM3, project);
-	detectII(projectM3);
+	detectRB(model, project);
+	detectII(model);
+}
+
+// this method will execute main() iteration squared number of times. VERY time consuming!
+void gatherDataSet(loc directory, int iterations = 5) {
+	println("Gathering dataset...");
+	N = now();
+	int count = 0;
+	for (int i <- [1..iterations]) {
+		for(int j <- [1..iterations]) {
+			datetime loop = now();
+			println("Running with setting: <i>,<j>");
+			setOverrideThreshold(i);
+			setProtectedMemberThreshold(j);
+			setCouplingThreshold(i);
+			// this may (very) slightly improve performance
+			if (j == 1)
+				enableIIDetector();
+			if(j > 1) 
+				disableIIDetector();
+			
+			if(count >= 1) {
+				reportNewLine();
+				// reprint (adjusted) settings.
+				reportSettings();
+			}
+			main(directory, console = false, oneReport = true);
+			count += 1; 
+			println("Run <count> took: <convertIntervalToStr(loop)>");
+		}
+	}
+	println("Finished dataset in: <convertIntervalToStr(N)>");
 }
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
 public void s1(bool console = true, bool debugging = false, bool results = false, bool storeData = true) {
 	bool projectLogging = true;
-	initialize(debugging, projectLogging, console, results, storeData);
+	initialize(debugging, projectLogging, console, results, storeData, false);
 	detectProject(|project://DetectorTests|);
 	detectProject(|project://Python-Defect-Detector|);
 }
 
 public void s2() {
 	disseminateM3ModelToFile(createM3FromEclipseProject(|project://DetectorTests|), printAll = true);
+}
+
+public void s3() {
+	gatherDataSet(|home:///projects/Systems3|);
 }

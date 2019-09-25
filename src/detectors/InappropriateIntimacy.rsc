@@ -29,7 +29,10 @@ public rel[loc,loc] detectII(M3 model){
 	// 3. count calls for every class. to other classes. 
 	// 4. check gathered classes to see if they have more calls than the threshold.
 	// 5. perform 1-4 for field access 
-	
+	if(!getIIEnabled()) {
+		addIIResultsToReport("disabled");
+		return {};
+	}
 	initialize();
 	map[loc, map[loc, int]] classCalls = ();
 	map[loc, map[loc, int]] raw = ();

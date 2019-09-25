@@ -97,8 +97,9 @@ public void startReport() {
 }
 
 // log settings for data collection
-void reportSettings() {
-	appendToFile(report, "Settings\n\n");
+public void reportSettings() {
+	str disabled = "disabled";
+	appendToFile(report, "[Settings]\n\n");
 	appendToFile(report, "[Detector]\n");
 	appendToFile(report, "Debugging: \t\t<getDebuggingMode()>\n");
 	appendToFile(report, "Data storage:\t\t<getDataStorage()>\n");
@@ -107,8 +108,10 @@ void reportSettings() {
 	appendToFile(report, "Override Threshold:\t<getBequestOverrideThreshold()>\n");
 	appendToFile(report, "Few protected members:\t<getProtectedMemberThreshold()>");
 	
+	
 	appendToFile(report, "\n\n[Inappropriate Intimacy]\n");
-	appendToFile(report, "Coupling threshold:\t<getCouplingThreshold()>");
+	appendToFile(report, "Detector enabled:\t<getIIEnabled()>\n");
+	appendToFile(report, "Coupling threshold:\t<getIIEnabled() ? getCouplingThreshold() : disabled>");
 	
 	appendToFile(report, "\n\nEnd of Settings\n\n");
 }
@@ -119,6 +122,14 @@ public void addProjectToReport(loc project, int totalLOC, int totalCC, int rbCla
 
 public void addIIResultsToReport(int countII) {
 	appendToFile(report, " II: <countII>\n");
+}
+
+public void addIIResultsToReport(str countII) {
+	appendToFile(report, " II: <countII>\n");
+}
+
+public void reportNewLine() {
+	appendToFile(report, "\n");
 }
 
 public void endLog() {
@@ -302,6 +313,14 @@ public void debug(str msg, bool condition){
 
 public str convertIntervalToStr(interval i) {
 	Duration duration = createDuration(i);
+	if (duration.days > 0) { 
+		return "<duration.days> days and <duration.hours>:<duration.minutes>:<duration.seconds>";
+	}
+	return "<duration.hours>:<duration.minutes>:<duration.seconds>";
+}
+
+public str convertIntervalToStr(datetime dt) {
+	Duration duration = createDuration(Interval(dt, now()));
 	if (duration.days > 0) { 
 		return "<duration.days> days and <duration.hours>:<duration.minutes>:<duration.seconds>";
 	}
