@@ -34,9 +34,10 @@ public void startProcessing(bool oneReport) {
 	startLog();
 	// don't start a new report file if 
 	if(oneReport) {
-		if(!reportInitialized) 
+		if(!reportInitialized) {
 			startReport();
 			reportInitialized = true;
+		}
 	} else {
 		startReport();
 	}
@@ -100,6 +101,9 @@ void processProject(loc project) {
 		
 	detectRB(model, project);
 	detectII(model);
+	// memory saving. 
+	unregisterProject(project, model);
+	model = emptyM3(project);
 }
 
 void reprocessProject(loc project) {		
