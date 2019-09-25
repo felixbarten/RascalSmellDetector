@@ -69,3 +69,7 @@ public bool getPrintIntermediaryResults() {
 public bool getStoreData() {
 	return storeData;
 }
+
+public bool getDataStorage() {
+	return storeData;
+}

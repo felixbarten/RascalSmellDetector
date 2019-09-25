@@ -148,8 +148,9 @@ void processEclipseProject(loc project) {
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
-public void s1(bool console = true, bool debugging = false, bool results = true, bool storeData = true) {
-	initialize(debugging, true, console, results, storeData);
+public void s1(bool console = true, bool debugging = false, bool results = false, bool storeData = true) {
+	bool projectLogging = true;
+	initialize(debugging, projectLogging, console, results, storeData);
 	detectProject(|project://DetectorTests|);
 	detectProject(|project://Python-Defect-Detector|);
 }

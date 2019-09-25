@@ -91,8 +91,26 @@ public void startReport() {
 	report = reportsDir + "report<fileName>";
 	if(!isFile(report)) {
 		writeFile(report, "Start of Report <fileName>\n\n");
+		reportSettings();
 	}
 	// maybe write a table here but for now project summary would be fine. 
+}
+
+// log settings for data collection
+void reportSettings() {
+	appendToFile(report, "Settings\n\n");
+	appendToFile(report, "[Detector]\n");
+	appendToFile(report, "Debugging: \t\t<getDebuggingMode()>\n");
+	appendToFile(report, "Data storage:\t\t<getDataStorage()>\n");
+	
+	appendToFile(report, "\n[Refused Bequest]\n");
+	appendToFile(report, "Override Threshold:\t<getBequestOverrideThreshold()>\n");
+	appendToFile(report, "Few protected members:\t<getProtectedMemberThreshold()>");
+	
+	appendToFile(report, "\n\n[Inappropriate Intimacy]\n");
+	appendToFile(report, "Coupling threshold:\t<getCouplingThreshold()>");
+	
+	appendToFile(report, "\n\nEnd of Settings\n\n");
 }
 
 public void addProjectToReport(loc project, int totalLOC, int totalCC, int rbClasses) {
@@ -265,6 +283,7 @@ public void output(str msg, bool condition) {
 	}
 }
 
+// move to debugging file.
 public void debug(str msg) {
 	if(getDebugMode()){
 		str msg = "[DEBUG] <msg>\n";
