@@ -7,7 +7,7 @@ import lang::java::m3::AST;
 import lang::java::m3::TypeSymbol;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
-import lang::java::jdt::m3::TypeSymbol;
+//import lang::java::jdt::m3::TypeSymbol;
 import util::Settings;
 import util::Reporting;
 import ValueIO;
@@ -19,19 +19,17 @@ str name = "default";
 
 public void initializeDS(loc dir = |home://data|) {
 	if(!enabled && initialized) return;
-	//println("Initializing data storage");
 	initializeDirectories();
 	initialized = true;
 	dataDir = getDataDirectory();
 }
 
-public void initializeProject(str n) {
-	name = n;
-}
-
 public bool checkProjectData(loc project) {
 	// check if data files exist for this project
 	name = project.file;
+	if(project.scheme == "project")
+		name = project.authority;
+		
 	list[bool] projectData = [];
 	for (str dataType <- getDataTypes()) {
 		projectData += checkData(dataType);
@@ -86,9 +84,7 @@ public tuple[rel[loc,int],int,int,int,real] retrieveLOC(){
 
 public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] retrieveCC(){
 	loc dataFile = dataDir + "CC/<name>";
-	 tuple[map[loc, tuple[int wmc, real amw]], int, int, real] results = readBinaryValueFile(#tuple[map[loc, tuple[int wmc, real amw]], int, int, real], dataFile);
-	//println("<results>");
-	
+	tuple[map[loc, tuple[int wmc, real amw]], int, int, real] results = readBinaryValueFile(#tuple[map[loc, tuple[int wmc, real amw]], int, int, real], dataFile);
 	return results;
 }
 

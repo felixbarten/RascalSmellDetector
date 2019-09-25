@@ -78,20 +78,6 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	int count = 0;
 	output("<prefix> Detecting Refused Bequest...");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
-	if(size(model.extends) == 0) output("extends is empty");
-	int recount = 0;
-	list[bool] classValid = [];
-	for(cls <- model.extends) {
-		classValid += classIsValid(cls);
-		if (recount < 5) {
-			println("<cls>");
-		}
-		recount += 1; 
-	}
-	if(true notin classValid) {
-		println("What gives!!!");
-	}
-	
 	for(cls <- model.extends, classIsValid(cls)) {
 		loc child = cls[0];
 		loc parent = cls[1];
@@ -134,6 +120,13 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 void storeInformation(M3 model, bool processed) {
 	if(!processed) {
 		storeModel(model);
+		output("<model.id>");
+		
+		M3 m2 = retrieveModel();
+		output("<m2.id>");
+		if(model != m2) {
+			output("Data storage encountered an error.");
+		}
 	}
 }
 

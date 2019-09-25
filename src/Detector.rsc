@@ -13,6 +13,7 @@ import lang::java::m3::Core;
 import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
+import analysis::m3::Registry;
 
 public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
@@ -25,6 +26,16 @@ private void initialize(bool debugging, bool projectLogging, bool enableConsole,
 	setStoreData(dataStorage);
 
 	startProcessing();
+}
+
+public void startProcessing() {
+	initializeDS();
+	startLog();
+	startReport();
+}
+
+public void endProcessing() {
+	endLog();
 }
 
 public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true, bool results = false, bool dataStorage = true) {
@@ -46,12 +57,11 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 	
 	for (project <- projects) {
 		output("<prefix> Processing project <count> of <projectNum>: <project>");
-		initializeProject(project.file);
 		loc logFile = startProjectLog(project.file, subdir);
 		startTime = now();
-		// check datavault 
+		// check datavault for processed data
 		bool processed = checkProjectData(project);
-		if(!processed){
+		if(!checkProjectData(project)){
 			processProject(project);
 		} else {
 			output("[PROJ] Project <project.file> has already been processed. Retrieving data...");
@@ -81,14 +91,20 @@ void processProject(loc project) {
 void reprocessProject(loc project) {		
 	LOC = retrieveLOC();
 	CC = retrieveCC();
-
 	M3 model = retrieveModel();
-	
+	// register project with rascal to rebuild location database for resolving java+class locs. 
+	registerProject(project, model);
+
 	IIFA = retrieveIIFA();
 	IICC = retrieveIICC();
 	
 	detectRB(model, project, LOC, CC);
 	detectII(model, IICC, IIFA);	
+	// unregister file mappings so the results aren't contaminated
+	// for example: project A has a dependency on project B. 
+	// normally isFile(clsA) && isFile(clsB) would fail but if project B is in register it would not.
+	unregisterProject(project, model);
+	model = emptyM3(project);
 }
 
 // This method can be called for a single project.
@@ -104,6 +120,21 @@ public void detectProject(loc project) {
 		startProjectLog(project.authority, subdir);
 	}
 	output("<prefix> Starting project detection");
+	
+	bool processed = checkProjectData(project);
+	if(!processed){
+		processEclipseProject(project);
+	} else {
+		output("[PROJ] Project <project.file> has already been processed. Retrieving data...");
+		reprocessProject(project);
+	}
+	if(getProjectLogging()) {
+		endProjectLog(N);
+	}
+	endProcessing();
+}
+
+void processEclipseProject(loc project) {
 	M3 projectM3 = createM3FromEclipseProject(project);
 		
 	// report issues
@@ -111,31 +142,14 @@ public void detectProject(loc project) {
 		debug("<prefix> <message>");
 	}
 		
-	if(getProjectLogging()) {
-		endProjectLog(N);
-	}
-	
 	detectRB(projectM3, project);
 	detectII(projectM3);
-	
-	endProcessing();
-}
-
-// start is a keyword??
-public void startProcessing() {
-	initializeDS();
-	startLog();
-	startReport();
-}
-
-public void endProcessing() {
-	endLog();
 }
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
-public void s1(bool console = true, bool debugging = false, bool results = true) {
-	initialize(debugging, true, console, results, true);
+public void s1(bool console = true, bool debugging = false, bool results = true, bool storeData = true) {
+	initialize(debugging, true, console, results, storeData);
 	detectProject(|project://DetectorTests|);
 	detectProject(|project://Python-Defect-Detector|);
 }

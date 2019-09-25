@@ -105,7 +105,7 @@ public void addIIResultsToReport(int countII) {
 
 public void endLog() {
 	endTime = Interval(startTime, now());
-	output("[MAIN] Processed project in: <convertIntervalToStr(endTime)>");
+	output("[MAIN] Processed all projects in: <convertIntervalToStr(endTime)>");
 }
 
 // creates a logFile and returns the loc. 
