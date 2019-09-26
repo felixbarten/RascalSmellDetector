@@ -88,12 +88,15 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 }
 
 void processProject(loc project) {
+	N = now();
+	output("<prefix> Creating M3 model...");
 	M3 model = emptyM3(project);
 	if(project.scheme == "project") {
 		model = createM3FromEclipseProject(project);
 	} else {
 		model = createM3FromDirectory(project);
 	}
+	output("<prefix> Created M3 model in: <convertIntervalToStr(N)>");
 	// report issues
 	for (message <- model.messages) {
 		debug("<prefix> <message>");

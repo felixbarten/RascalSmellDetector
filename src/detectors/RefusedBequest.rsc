@@ -57,11 +57,11 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	// Step 2b If they do have a superclass can we access it or is it a default library?
 	// Step 3: perform analysis on parent and child. 
 	if(!processed) initialize(model);
-	output("<prefix> Detector starting for project");
 	rel[loc,loc,bool] detectedRBClasses = {};
 	rel[loc,loc,bool] RBCandidates = {};
 	list[loc] nonTrivialClasses = [];
 	bool RB = false;
+	N = now();
 	int count = 0;
 	output("<prefix> Detecting Refused Bequest...");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
@@ -86,12 +86,16 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 		if(count % 250 == 0) {
 			output("<prefix> Processed <count> classes");
 		}
+		if(count % 2000 == 0) {
+			output("<prefix> RB detector has been running: <convertIntervalToStr(N)>");
+		}
 	}
-	output("<prefix> Finished detecting Refused Bequest.");
 	
 	output("<prefix> Number of RB candidates: <count> ");
 	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
 	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
+	output("<prefix> Finished detecting Refused Bequest in <convertIntervalToStr(N)>");
+	
 	printRB(detectedRBClasses, nonTrivialClasses);
 	
 	// unfortunately have to save a LARGE amount of data.... might have to refactor.

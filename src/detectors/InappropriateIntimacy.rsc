@@ -32,6 +32,8 @@ public rel[loc,loc] detectII(M3 model){
 		addIIResultsToReport("disabled");
 		return {};
 	}
+	datetime N = now();
+	
 	initialize();
 	map[loc, map[loc, int]] classCalls = ();
 	map[loc, map[loc, int]] raw = ();
@@ -113,7 +115,8 @@ public rel[loc,loc] detectII(M3 model){
 	storeIIFA(classAccess);
 	
 	II = checkSuspects(suspectedII);
-	output("<prefix> Finished II detection. Found <size(carrier(II))> II classes");
+	output("<prefix> Found <size(carrier(II))> II classes.");
+	output("<prefix> Finished II detection in <convertIntervalToStr(N)>.");
 	printII(II);
 	addIIResultsToReport(size(carrier(II)));
 	
@@ -136,6 +139,7 @@ rel[loc,loc] checkSuspects(set[tuple[loc,loc]] suspects) {
 
 // use processed data. 
 public rel[loc,loc] detectII(M3 model, map[loc, map[loc,int]] iicc, map[loc, map[loc,int]] iifa) {
+	N = now();
 	initialize();
 	rel[loc,loc] II = {};
 	set[tuple[loc, loc]] suspectedII = {};
@@ -150,7 +154,8 @@ public rel[loc,loc] detectII(M3 model, map[loc, map[loc,int]] iicc, map[loc, map
 		}
 	}
 	II = checkSuspects(suspectedII);
-	output("<prefix> Finished II detection. Found <size(carrier(II))> II classes");
+	output("<prefix> Found <size(carrier(II))> II classes");
+	output("<prefix> Finished II detection in <convertIntervalToStr(N)>.");
 	printII(II);
 	addIIResultsToReport(size(carrier(II)));
 	return II;

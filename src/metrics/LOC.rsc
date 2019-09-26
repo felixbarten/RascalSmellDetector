@@ -13,6 +13,7 @@ str prefix = "[LOC]";
 
 // Returns a tuple with a relation of [class, loc], total LOC, blank lines and comments, average LOC
 public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
+	datetime dt = now();
 	rel[loc,int] classLOC = {};
 	list[tuple[int, int, int]] LOCContainer = [];
 	output("<prefix> Calculating LOC...");
@@ -25,7 +26,7 @@ public tuple[rel[loc,int],int,int,int,real] calculateLOC(M3 model) {
 		classLOC += <cu[1], LOCval[0]>;
 	}	
 	totalLOC = getTotalLOC(LOCContainer);
-	output("<prefix> Total project LOC: <totalLOC[0]>");
+	output("<prefix> Total project LOC: <totalLOC[0]>. Calculated in <convertIntervalToStr(dt)>");
 	
 	tuple[rel[loc,int],int,int,int,real] results = <classLOC, totalLOC[0], totalLOC[1], totalLOC[2], getAvgLOC(totalLOC[0], size(LOCContainer))>; 
 	storeLOC(results);

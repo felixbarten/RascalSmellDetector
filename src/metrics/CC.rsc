@@ -13,6 +13,7 @@ str prefix = "[CC]";
 
 // Calculates the cyclomatic complexity per compilation unit (file). 
 public rel[loc, int] calculateCompUnitsCC(M3 model) {
+	datetime dt = now();
 	compUnitCC = {};
 	output("<prefix> Calculating complexity per compilation unit");
 	projectCC = 0; 
@@ -28,7 +29,7 @@ public rel[loc, int] calculateCompUnitsCC(M3 model) {
 	}
 	
 	output("<prefix> Total project CC: <projectCC>");
-	output("<prefix> Finishing calculating complexity");
+	output("<prefix> Finishing calculating complexity in <convertIntervalToStr(dt)>");
 	return compUnitCC;
 	
 } 
