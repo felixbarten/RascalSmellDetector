@@ -122,7 +122,7 @@ public tuple[int locNum, int blank, int comments] getLOC(loc location, bool prin
 	debug("Lines of Code: <LOC>", printAll);
 	debug("Commented lines: <comments>", printAll);
 	debug("Blank lines: <blankLines>", printAll);
-	
+	srcLines = [];
 	return <LOC, blankLines, comments>;
 }
 

@@ -14,6 +14,7 @@ import lang::java::m3::AST;
 import lang::java::jdt::m3::Core;
 import lang::java::jdt::m3::AST;
 import analysis::m3::Registry;
+import util::Benchmark;
 
 public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
@@ -104,9 +105,7 @@ void processProject(loc project) {
 		
 	detectRB(model, project);
 	detectII(model);
-	// memory saving. 
-	unregisterProject(project, model);
-	model = emptyM3(project);
+	cleanup(model, project);
 }
 
 void reprocessProject(loc project) {		
@@ -121,11 +120,17 @@ void reprocessProject(loc project) {
 	
 	detectRB(model, project, LOC, CC);
 	detectII(model, IICC, IIFA);	
+	cleanup(model, project);
+}
+
+void cleanup(M3 model, loc project) {
 	// unregister file mappings so the results aren't contaminated
 	// for example: project A has a dependency on project B. 
 	// normally isFile(clsA) && isFile(clsB) would fail but if project B is in register it would not.
 	unregisterProject(project, model);
 	model = emptyM3(project);
+	// force garbage collect. 
+	gc();
 }
 
 // This method can be called for a single project.
@@ -206,3 +211,9 @@ public void s3() {
 public void s4() {
 	main(|home:///projects/Systems3|);
 }
+
+public void s5() {
+	//main(|file:///I:/corpus/pt1/20130901r/Systems|);
+	main(|file:///I:/corpus/pt2/20130901r/Systems|);
+}
+
