@@ -217,3 +217,28 @@ public void s5() {
 	main(|file:///I:/corpus/pt2/20130901r/Systems|);
 }
 
+public void s6() {
+	//main(|file:///I:/corpus/pt1/20130901r/Systems|);
+	gatherDataSet(|file:///I:/corpus/pt1/20130901r/Systems|, min = 1, max = 8);
+}
+
+public void test1() {
+	disableRBDetector();
+	main(|home:///projects|);
+}
+
+public void s7(loc directory) {
+	N = now();
+	//forgot a few permutations when running my data set. 
+	setOverrideThreshold(3);
+	setProtectedMemberThreshold(4);
+	setCouplingThreshold(3);
+	main(directory, console = false, oneReport = true);
+	
+	setOverrideThreshold(4);
+	setProtectedMemberThreshold(3);
+	setCouplingThreshold(4);
+	main(directory, console = false, oneReport = true);
+	println("Finished dataset in: <convertIntervalToStr(N)>");
+
+}

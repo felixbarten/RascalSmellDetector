@@ -35,17 +35,17 @@ public rel[loc,loc] detectII(M3 model){
 	datetime N = now();
 	
 	initialize();
+	// method calls
 	map[loc, map[loc, int]] classCalls = ();
 	map[loc, map[loc, int]] raw = ();
 	
+	// field access
 	map[loc, map[loc, int]] classAccess = ();
 	rel[loc,loc] II = {};
 	
-	set[tuple[loc, loc]] suspectedII = {};
-	set[tuple[loc, loc]] suspectedFAII = {};
-	
 	output("<prefix> Detecting II...");
 	int count = 0;
+	// loop through method invocations where the location is a valid file within the project.
 	for (tuple[loc from, loc to] cu <- model.methodInvocation, isFile(cu.to)) {
 		loc caller = cu.from.parent;
 		loc from = cu.from;
@@ -63,33 +63,41 @@ public rel[loc,loc] detectII(M3 model){
 			continue;
 		}
 		// <debugging>
-		if(from notin raw) raw[from] = ();
-		if(to notin raw[from]) raw[from][to] = 0;
+		if(from notin raw) {
+			raw[from] = ();
+		}
+		if(to notin raw[from]) {
+			raw[from][to] = 0;
+		}
 		raw[from][to] += 1;
 		// </debugging>
-				
+		
+		// add if not present. 
 		if(caller notin classCalls) {
 			classCalls[caller] = ();
 		}
 		
+		// add to submap if not present. 
 		if(callee notin classCalls[caller]) {
 			classCalls[caller][callee] = 0;
 		}
+		// increment callcounter
 		classCalls[caller][callee] += 1;
-			
+			/*
 		if(classCalls[caller][callee] > threshold) {
 			suspectedII += <caller, callee>;
-		}
+		}*/
 		count += 1;
 		if(count % 10000 == 0) {
 			output("[II] Processed <count> method invocations");
 		}
 	}
-	// store data 
+	// store method call data 
 	storeIICC(classCalls);
 	
 	//filtering for modfiers is not possible as some fields are accessible if they have no modifier.
 	// filtering out private and protected is an option though to increase performance
+	int fieldCount = 0;
 	for (tuple[loc from, loc to] cu <- model.fieldAccess, isFile(cu.to)) {
 		loc caller = cu.from.parent;
 		// make the loc valid again.
@@ -107,12 +115,19 @@ public rel[loc,loc] detectII(M3 model){
 			classAccess[caller][callee] = 0;
 		}
 		classAccess[caller][callee] += 1;
+		fieldCount += 1;
+		if(fieldCount % 10000 == 0) {
+			output("[II] Processed <fieldCount> accessed fields.");
+		}
+		/*
 		if(classAccess[caller][callee] > threshold) {
 			suspectedFAII += <caller, callee>;
-		}
+		}*/
 	}
-	//store data
+	//store field access data
 	storeIIFA(classAccess);
+	
+	rel[loc,loc] suspectedII = combineThresholdMaps(classCalls, classAccess, true);
 	
 	II = checkSuspects(suspectedII);
 	output("<prefix> Found <size(carrier(II))> II classes.");
@@ -135,25 +150,62 @@ rel[loc,loc] checkSuspects(set[tuple[loc,loc]] suspects) {
 	}
 	return II;
 }
+
+// combines the threshold maps and returns a suspected II relation. 
+rel[loc,loc] combineThresholdMaps(map[loc, map[loc, int]] iicc, map[loc, map[loc, int]] iifa, bool storeData) {
+	datetime N = now();
+	int origSize = size(iicc);
+	map[loc, map[loc, int]] matches = iicc;
+	rel[loc, loc] IISuspects = {};
+	// loop through fa map
+	for (caller <- iifa) {
+		// prevent nullpointer
+		if(caller notin matches) {
+			matches[caller] = ();
+		}
 	
+		for (callee <- iifa[caller]){
+			if (callee notin matches[caller]) {
+				matches[caller][callee] = iifa[caller][callee];
+			} else {
+				// merge records.
+				int record = matches[caller][callee];
+				int updatedValue = record + iifa[caller][callee];
+				matches[caller][callee] =  updatedValue;
+				output("Amended record: <record> -\> <updatedValue>");
+			}
+		}
+	}	
+
+	for (caller <- matches) {
+		for(callee <- matches[caller]) {
+			// add match if above threshold
+			if(matches[caller][callee] > threshold) {
+				IISuspects += <caller, callee>;
+			}	
+		}
+	}
+	if(storeData) {
+		storeIICOMB(matches);
+	}
+	
+	output("Size before <origSize> size after: <size(matches)>");
+	output("<prefix> Finished merging maps in <convertIntervalToStr(N)>.");
+	return IISuspects;
+}
 
 // use processed data. 
 public rel[loc,loc] detectII(M3 model, map[loc, map[loc,int]] iicc, map[loc, map[loc,int]] iifa) {
 	N = now();
 	initialize();
+	output("<prefix> II detector state restored.");
 	rel[loc,loc] II = {};
 	set[tuple[loc, loc]] suspectedII = {};
 	set[tuple[loc, loc]] suspectedFAII = {};
 	
-	// loop through maps
-	for (caller <- iicc) {
-		for(callee <- iicc[caller]) {
-			if(iicc[caller][callee] > threshold) {
-				suspectedII += <caller, callee>;
-			}
-		}
-	}
-	II = checkSuspects(suspectedII);
+	rel[loc,loc] suspects = combineThresholdMaps(iicc, iifa, false);
+	
+	II = checkSuspects(suspects);
 	output("<prefix> Found <size(carrier(II))> II classes");
 	output("<prefix> Finished II detection in <convertIntervalToStr(N)>.");
 	printII(II);

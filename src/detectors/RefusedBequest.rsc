@@ -56,7 +56,15 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	// step 2a: visit classes to see if they have a superclass. If not skip. 
 	// Step 2b If they do have a superclass can we access it or is it a default library?
 	// Step 3: perform analysis on parent and child. 
-	if(!processed) initialize(model);
+
+	if(!processed) {
+		initialize(model);
+	}
+	// skip if disabled.
+	if(!getRBEnabled()) {
+		addProjectToReport(project, totalLOC, totalCC, "disabled");
+		return {};
+	}
 	rel[loc,loc,bool] detectedRBClasses = {};
 	rel[loc,loc,bool] RBCandidates = {};
 	list[loc] nonTrivialClasses = [];
@@ -154,6 +162,7 @@ bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) {
 	}	
 		
 	int count = 0;
+	// check field[0] against child, check field[1] against parent. Check if parent[1] is a dependency within the project. 
 	for (field <- model.fieldAccess, 
 			field[0].parent.path == childLoc.path
 			&& field[1].parent.path == parentLoc.path
@@ -225,6 +234,7 @@ bool classComplexityAbvAvg(loc cls) {
 bool classSizeAbvAvg(loc cls) {
 	int clsLOC = 0;
 	if (cls in locMap){
+		// take the higest loc value for class if found multiple times 
 		clsLOC = max(locMap[cls]);
 	} else {
 		debug("Class size value not found in lines of code");

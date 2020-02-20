@@ -109,6 +109,7 @@ public void reportSettings() {
 	appendToFile(report, "Data storage:\t\t<getDataStorage()>\n");
 	
 	appendToFile(report, "\n[Refused Bequest]\n");
+	appendToFile(report, "Detector enabled:\t<getRBEnabled()>\n");
 	appendToFile(report, "Override Threshold:\t<getBequestOverrideThreshold()>\n");
 	appendToFile(report, "Few protected members:\t<getProtectedMemberThreshold()>");
 	
@@ -124,12 +125,25 @@ public void addProjectToReport(loc project, int totalLOC, int totalCC, int rbCla
 	appendToFile(report, "Project: <project> LOC: <totalLOC> CC: <totalCC> RB classes: <rbClasses>");
 }
 
+public void addProjectToReport(loc project, int totalLOC, int totalCC, str rbStatus) {
+	appendToFile(report, "Project: <project> LOC: <totalLOC> CC: <totalCC> RB: <rbStatus>");
+}
+
+
 public void addIIResultsToReport(int countII) {
 	appendToFile(report, " II: <countII>\n");
 }
 
+public void addRBResultsToReport(int countII) {
+	appendToFile(report, " RB: <countII>\n");
+}
+
 public void addIIResultsToReport(str countII) {
 	appendToFile(report, " II: <countII>\n");
+}
+
+public void addRBResultsToReport(str countII) {
+	appendToFile(report, " RB: <countII>\n");
 }
 
 public void reportNewLine() {

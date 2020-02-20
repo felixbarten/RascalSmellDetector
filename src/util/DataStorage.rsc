@@ -69,6 +69,12 @@ public void storeIIFA(map[loc, map[loc, int]] results){
 	writeBinaryValueFile(dataFile, results);
 }
 
+public void storeIICOMB(map[loc, map[loc, int]] results){
+	debug("Storing II COMB data");
+	loc dataFile = dataDir + "IICOMB/<name>";
+	writeBinaryValueFile(dataFile, results);
+}
+
 public void storeModel(M3 model) {
 	loc dataFile = dataDir + "M3/<name>";
 	writeBinaryValueFile(dataFile, model);
@@ -94,6 +100,11 @@ public map[loc, map[loc,int]] retrieveIICC(){
 
 public map[loc, map[loc,int]] retrieveIIFA(){
 	loc dataFile = dataDir + "IIFA/<name>";
+	return readBinaryValueFile(#map[loc, map[loc,int]], dataFile);
+}
+
+public map[loc, map[loc,int]] retrieveCombinedMap(){
+	loc dataFile = dataDir + "IICOMB/<name>";
 	return readBinaryValueFile(#map[loc, map[loc,int]], dataFile);
 }
 

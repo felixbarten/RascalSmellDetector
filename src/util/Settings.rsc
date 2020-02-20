@@ -113,3 +113,11 @@ public void enableIIDetector() {
 public void disableIIDetector(){
 	iiEnabled = false;
 }
+
+public void enableRBDetector() {
+	rbEnabled = true;
+}
+
+public void disableRBDetector(){
+	rbEnabled = false;
+}
