@@ -30,7 +30,8 @@ list[str] dataTypes = [
 	"LOC", 
 	"M3",
 	"IICC", 
-	"IIFA"
+	"IIFA",
+	"IICOMB"
 	];
 
 public void startLog(loc directory = |home:///|) {

@@ -37,7 +37,8 @@ public rel[loc,loc] detectII(M3 model){
 	initialize();
 	// method calls
 	map[loc, map[loc, int]] classCalls = ();
-	map[loc, map[loc, int]] raw = ();
+	map[loc, map[loc, int]] rawCC = ();
+	map[loc, map[loc, int]] rawFA = ();
 	
 	// field access
 	map[loc, map[loc, int]] classAccess = ();
@@ -63,13 +64,13 @@ public rel[loc,loc] detectII(M3 model){
 			continue;
 		}
 		// <debugging>
-		if(from notin raw) {
-			raw[from] = ();
+		if(from notin rawCC) {
+			rawCC[from] = ();
 		}
-		if(to notin raw[from]) {
-			raw[from][to] = 0;
+		if(to notin rawCC[from]) {
+			rawCC[from][to] = 0;
 		}
-		raw[from][to] += 1;
+		rawCC[from][to] += 1;
 		// </debugging>
 		
 		// add if not present. 
@@ -99,6 +100,8 @@ public rel[loc,loc] detectII(M3 model){
 	// filtering out private and protected is an option though to increase performance
 	int fieldCount = 0;
 	for (tuple[loc from, loc to] cu <- model.fieldAccess, isFile(cu.to)) {
+		loc from = cu.from;
+		loc to = cu.to;	
 		loc caller = cu.from.parent;
 		// make the loc valid again.
 		caller.scheme = "java+class";
@@ -106,6 +109,16 @@ public rel[loc,loc] detectII(M3 model){
 		callee.scheme = "java+class";
 		// filter out accessing own fields. 
 		if (caller == callee) continue;
+				
+		// <debugging>
+		if(cu.from notin rawFA) {
+			rawFA[cu.from] = ();
+		}
+		if(to notin rawFA[from]) {
+			rawFA[cu.from][cu.to] = 0;
+		}
+		rawFA[from][to] += 1;
+		// </debugging>
 				
 		if(caller notin classAccess) {
 			classAccess[caller] = ();
@@ -126,6 +139,7 @@ public rel[loc,loc] detectII(M3 model){
 	}
 	//store field access data
 	storeIIFA(classAccess);
+	storeRawDebugMaps(rawCC, rawFA);
 	
 	rel[loc,loc] suspectedII = combineThresholdMaps(classCalls, classAccess, true);
 	

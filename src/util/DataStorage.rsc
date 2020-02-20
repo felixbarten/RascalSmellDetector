@@ -26,8 +26,9 @@ public void initializeDS(loc dir = |home://data|) {
 public bool checkProjectData(loc project) {
 	// check if data files exist for this project
 	name = project.file;
-	if(project.scheme == "project")
+	if(project.scheme == "project") {
 		name = project.authority;
+	}
 		
 	list[bool] projectData = [];
 	for (str dataType <- getDataTypes()) {
@@ -72,8 +73,42 @@ public void storeIIFA(map[loc, map[loc, int]] results){
 public void storeIICOMB(map[loc, map[loc, int]] results){
 	debug("Storing II COMB data");
 	loc dataFile = dataDir + "IICOMB/<name>";
+	loc dataFile2 = dataDir + "IICOMB/<name>_debug";
+	mapToFile(dataFile2, results);
 	writeBinaryValueFile(dataFile, results);
 }
+
+// store unstripped locations for later reference. 
+public void storeRawDebugMaps(map[loc, map[loc, int]] rawCC, map[loc, map[loc, int]] rawFA){
+	debug("Storing Raw Debugging maps.");
+	loc dataFileCC = dataDir + "RAWCC/<name>";
+	loc dataFileFA = dataDir + "RAWFA/<name>";
+	
+	loc dataFileCC2 = dataDir + "RAWCC/<name>_manual";
+	loc dataFileFA2 = dataDir + "RAWFA/<name>_manual";
+	
+	
+	mapToFile(dataFileCC2, rawCC);
+	mapToFile(dataFileFA2, rawFA);
+	
+	
+	writeTextValueFile(dataFileCC, rawCC);
+	writeTextValueFile(dataFileFA, rawFA);
+}
+
+// data restricted keyword.
+public void mapToFile(loc file, map[loc, map[loc,int]] dataMap) {
+	if(!exists(file)) {
+		writeFile(file, "");
+	}
+	for (key <- dataMap) {
+		appendToFile(file, "<key> \n");
+		for(subkey <- dataMap[key]) {
+			appendToFile(file, "\t <subkey>: <dataMap[key][subkey]>\n");
+		}
+	}
+}
+
 
 public void storeModel(M3 model) {
 	loc dataFile = dataDir + "M3/<name>";
