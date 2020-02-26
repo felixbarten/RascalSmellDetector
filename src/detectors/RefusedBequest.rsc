@@ -37,7 +37,6 @@ public void initialize(M3 model,
 
 void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
 		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
-		
 	totalLOC = LOC[1];
 	totalCC = CC[1];
 	avgLOC = toReal(LOC[4]);
@@ -52,10 +51,10 @@ void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
 
 // detect RB using Lanza and Marinescu's metrics 
 public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false) {	
-	// step 1: create AST from project.
-	// step 2a: visit classes to see if they have a superclass. If not skip. 
-	// Step 2b If they do have a superclass can we access it or is it a default library?
-	// Step 3: perform analysis on parent and child. 
+	// step 1:  Create AST from project.
+	// step 2a: Visit classes to see if they have a superclass. If not skip. 
+	// Step 2b  If they do have a superclass can we access it or is it a default library?
+	// Step 3:  Perform analysis on parent and child. 
 
 	if(!processed) {
 		initialize(model);
@@ -90,15 +89,10 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 			detectedRBClasses  += temp;
 			debug("RB: <temp>");
 		}
-		count += 1; 
-		if(count % 250 == 0) {
-			output("<prefix> Processed <count> classes");
-		}
-		if(count % 2000 == 0) {
-			output("<prefix> RB detector has been running: <convertIntervalToStr(N)>");
-		}
+		count += 1;
+		printProgress(count, N);
 	}
-	
+		
 	output("<prefix> Number of RB candidates: <count> ");
 	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
 	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
@@ -106,12 +100,20 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	
 	printRB(detectedRBClasses, nonTrivialClasses);
 	
-	// unfortunately have to save a LARGE amount of data.... might have to refactor.
 	storeInformation(model, processed);
 
 	addProjectToReport(project, totalLOC, totalCC, size(detectedRBClasses));
 	
 	return detectedRBClasses;
+}
+
+void printProgress(int count, datetime N){
+	if(count % 250 == 0) {
+		output("<prefix> Processed <count> classes");
+	}
+	if(count % 2000 == 0) {
+		output("<prefix> RB detector has been running: <convertIntervalToStr(N)>");
+	}
 }
 
 void storeInformation(M3 model, bool processed) {
@@ -125,16 +127,16 @@ rel[loc,loc,bool] detectRB(M3 model,
 		loc project, 
 		tuple[rel[loc,int],int,int,int,real] LOC,
 		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
-	// to reuse code run initialization to set correct detector state.
 	initialize(model, LOC, CC);
 	return detectRB(model, project, processed = true);
 }
 
-// cls must have a superclass. And superclass needs to be accessible within the project. 
+// Cls must have a superclass and superclass needs to be accessible within the project. 
 bool classIsValid(tuple[loc, loc] classes) {
 	return isFile(classes[0])  && isFile(classes[1]);
 }
 
+// (NProtM > FEW && BUR < 0.33 ) || BOvR < 0.33
 bool classIgnoresBequest(M3 model, loc child, loc parent) {
 	return (parentHasProtectedMembers(model, parent) && childRefusesBequest(model, child, parent)) || childHasFewOverrides(model, child);
 }
@@ -183,7 +185,7 @@ bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) {
 		ratio = toReal(count) / toReal(parentMembers);
 	} 
 		
-	bool condition = ratio < 0.3333;
+	bool condition = ratio < 0.33;
 	debug("<childLoc> refuses bequest: <condition>, <ratio>");
 	return condition;
 }
@@ -207,6 +209,7 @@ bool childHasFewOverrides(M3 model, loc child) {
 } 
 
 // (functional complexity above average || class complexity is not lower than average). && Class size is above average. 
+// (AMW > AVG || WMC > AVG ) && NOM > AVG
 bool classIsNotSimple(loc cls) {
 	return (funcComplexityAbvAvg(cls) || classComplexityAbvAvg(cls)) && classSizeAbvAvg(cls);
 }

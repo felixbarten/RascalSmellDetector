@@ -10,9 +10,10 @@ import lang::java::jdt::m3::AST;
 
 // returns list of directories in root directory.
 public list[loc] gatherProjects(loc directory) {
-	if (!isDirectory(directory)) 
+	if (!isDirectory(directory)) {
 		return [];
-		
+	}
+	
 	list[loc] dirs = [];
 	for (loc dir <- directory.ls, isDirectory(dir)) {
 		dirs += dir; 

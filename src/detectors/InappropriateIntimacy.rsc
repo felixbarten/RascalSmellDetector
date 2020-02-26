@@ -9,10 +9,10 @@ import util::Settings;
 import util::Reporting;
 import util::DataStorage;
 
-int threshold = 0;
+int  threshold = 0;
 bool debugMode = false; 
 bool printAll = false;
-str prefix = "[II]";
+str  prefix = "[II]";
 
 public void initialize() {
 	threshold = getCouplingThreshold();
@@ -20,28 +20,25 @@ public void initialize() {
 	printAll =  getPrintIntermediaryResults();
 }
 
-// detect II with Lanza and Marinescu's metrics. 
-// In the book Intensive Coupling is defined which is not the same as the Inappropriate Intimacy smell however. 
+// detect II with Fowler's smell definition.
 public rel[loc,loc] detectII(M3 model){	
 	// 1. loop through method calls in project. 
 	// 2. check if the callee is a valid(accessible) file in the project otherwise discard. 
 	// 3. count calls for every class. to other classes. 
-	// 4. check gathered classes to see if they have more calls than the threshold.
-	// 5. perform 1-4 for field access 
+	// 4. perform 1-3 for field access 
+	// 5. combine maps.
+	// 6. check if any matches have more coupling than the threshold. 
 	if(!getIIEnabled()) {
 		addIIResultsToReport("disabled");
 		return {};
 	}
 	datetime N = now();
-	
 	initialize();
-	// method calls
-	map[loc, map[loc, int]] classCalls = ();
-	map[loc, map[loc, int]] rawCC = ();
+	map[loc, map[loc, int]] classCalls = (); // methods
+	map[loc, map[loc, int]] classAccess = (); // fields
+	map[loc, map[loc, int]] rawCC = (); // all mappings from A to B
 	map[loc, map[loc, int]] rawFA = ();
-	
-	// field access
-	map[loc, map[loc, int]] classAccess = ();
+
 	rel[loc,loc] II = {};
 	
 	output("<prefix> Detecting II...");
@@ -49,45 +46,29 @@ public rel[loc,loc] detectII(M3 model){
 	// loop through method invocations where the location is a valid file within the project.
 	for (tuple[loc from, loc to] cu <- model.methodInvocation, isFile(cu.to)) {
 		loc caller = cu.from.parent;
-		loc from = cu.from;
-		// convert to classes for comparison.
-		// it should be a method calling a method so loc.parent should return the class. 
-		caller.scheme = "java+class";
 		loc callee = cu.to.parent;
+		// copy vars so they can be stored in their original form.
+		loc from = cu.from;
 		loc to = cu.to;
+		
+		// convert schemes to classes for comparison.
+		caller.scheme = "java+class";
 		callee.scheme = "java+class";
 		
-		// discard if the caller and callee are the same source. 
+		// discard if the caller and callee are the same source.
 		if(caller == callee){
-			debug("Caller is equal to callee.");
-			debug("<from>, <to>");
 			continue;
 		}
 		// <debugging>
-		if(from notin rawCC) {
-			rawCC[from] = ();
-		}
-		if(to notin rawCC[from]) {
-			rawCC[from][to] = 0;
-		}
+		rawCC = addIfAbsent(caller, callee, rawCC);
 		rawCC[from][to] += 1;
 		// </debugging>
 		
-		// add if not present. 
-		if(caller notin classCalls) {
-			classCalls[caller] = ();
-		}
 		
-		// add to submap if not present. 
-		if(callee notin classCalls[caller]) {
-			classCalls[caller][callee] = 0;
-		}
+		classCalls = addIfAbsent(caller, callee, classCalls);
 		// increment callcounter
 		classCalls[caller][callee] += 1;
-			/*
-		if(classCalls[caller][callee] > threshold) {
-			suspectedII += <caller, callee>;
-		}*/
+
 		count += 1;
 		if(count % 10000 == 0) {
 			output("[II] Processed <count> method invocations");
@@ -97,45 +78,31 @@ public rel[loc,loc] detectII(M3 model){
 	storeIICC(classCalls);
 	
 	//filtering for modfiers is not possible as some fields are accessible if they have no modifier.
-	// filtering out private and protected is an option though to increase performance
 	int fieldCount = 0;
 	for (tuple[loc from, loc to] cu <- model.fieldAccess, isFile(cu.to)) {
+		loc caller = cu.from.parent;
+		loc callee = cu.to.parent;	
 		loc from = cu.from;
 		loc to = cu.to;	
-		loc caller = cu.from.parent;
 		// make the loc valid again.
 		caller.scheme = "java+class";
-		loc callee = cu.to.parent;
 		callee.scheme = "java+class";
 		// filter out accessing own fields. 
-		if (caller == callee) continue;
-				
+		if (caller == callee) {
+			continue;
+		}
 		// <debugging>
-		if(cu.from notin rawFA) {
-			rawFA[cu.from] = ();
-		}
-		if(to notin rawFA[from]) {
-			rawFA[cu.from][cu.to] = 0;
-		}
+		rawFA = addIfAbsent(caller, callee, rawFA);
 		rawFA[from][to] += 1;
 		// </debugging>
 				
-		if(caller notin classAccess) {
-			classAccess[caller] = ();
-		}
-		
-		if(callee notin classAccess[caller]) {
-			classAccess[caller][callee] = 0;
-		}
+		classAccess = addIfAbsent(caller, callee, classAccess);
 		classAccess[caller][callee] += 1;
+		
 		fieldCount += 1;
 		if(fieldCount % 10000 == 0) {
 			output("[II] Processed <fieldCount> accessed fields.");
 		}
-		/*
-		if(classAccess[caller][callee] > threshold) {
-			suspectedFAII += <caller, callee>;
-		}*/
 	}
 	//store field access data
 	storeIIFA(classAccess);
@@ -150,6 +117,17 @@ public rel[loc,loc] detectII(M3 model){
 	addIIResultsToReport(size(carrier(II)));
 	
 	return II;
+}
+
+// Add keys to map if they don't exist.
+map[loc, map[loc, int]] addIfAbsent(loc caller, loc callee, map[loc, map[loc, int]] mapData) {
+	if(caller notin mapData) {
+		mapData[caller] = ();
+	}
+	if(callee notin mapData[caller]) {
+		mapData[caller][callee] = 0;
+	}
+	return mapData;
 }
 
 rel[loc,loc] checkSuspects(set[tuple[loc,loc]] suspects) {
@@ -193,7 +171,7 @@ rel[loc,loc] combineThresholdMaps(map[loc, map[loc, int]] iicc, map[loc, map[loc
 
 	for (caller <- matches) {
 		for(callee <- matches[caller]) {
-			// add match if above threshold
+			// add suspect when above threshold. 
 			if(matches[caller][callee] > threshold) {
 				IISuspects += <caller, callee>;
 			}	
@@ -225,13 +203,4 @@ public rel[loc,loc] detectII(M3 model, map[loc, map[loc,int]] iicc, map[loc, map
 	printII(II);
 	addIIResultsToReport(size(carrier(II)));
 	return II;
-}
-
-public int calculateCINT() {
-
-}
-
-public real calculateCDISP() {
-
-
 }
