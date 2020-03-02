@@ -34,7 +34,9 @@ public bool checkProjectData(loc project) {
 	for (str dataType <- getDataTypes()) {
 		projectData += checkData(dataType);
 	}
-	if (true in projectData && false in projectData) output("Project data incomplete... processing again.");
+	if (true in projectData && false in projectData) {
+		output("Project data incomplete! Processing again...");
+	}
 	return false notin projectData;
 }
 
@@ -78,6 +80,20 @@ public void storeIICOMB(map[loc, map[loc, int]] results){
 	writeBinaryValueFile(dataFile, results);
 }
 
+public void storeRBDetectorInformation(map[loc, int] usedInheritanceMembers, map[loc, rel[loc,loc]] rawData) {
+	debug("Storing RB Detection data");
+	loc dataFile = dataDir + "RBINHERITANCE/<name>";
+	loc dataFile2 = dataDir + "RBINHERITANCE/<name>_debug";
+	writeBinaryValueFile(dataFile, usedInheritanceMembers);
+	mapToFile(dataFile2, rawData);
+}
+
+public void storeNOM(map[loc, int] NOM) {
+	debug("Storing NOM data");
+	loc dataFile = dataDir + "NOM/<name>";
+	writeBinaryValueFile(dataFile, NOM);
+}
+
 // store unstripped locations for later reference. 
 public void storeRawDebugMaps(map[loc, map[loc, int]] rawCC, map[loc, map[loc, int]] rawFA){
 	debug("Storing Raw Debugging maps.");
@@ -109,6 +125,19 @@ public void mapToFile(loc file, map[loc, map[loc,int]] dataMap) {
 	}
 }
 
+// data restricted keyword.
+public void mapToFile(loc file, map[loc, rel[loc,loc]] dataMap) {
+	if(!exists(file)) {
+		writeFile(file, "");
+	}
+	for (key <- dataMap) {
+		appendToFile(file, "<key> \n");
+		for(<a, b> <- dataMap[key]) {
+			appendToFile(file, "\t <a> -\> <b>\n");
+		}
+	}
+}
+
 
 public void storeModel(M3 model) {
 	loc dataFile = dataDir + "M3/<name>";
@@ -131,6 +160,16 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] retrieveCC(){
 public map[loc, map[loc,int]] retrieveIICC(){
 	loc dataFile = dataDir + "IICC/<name>";
 	return readBinaryValueFile(#map[loc, map[loc,int]], dataFile);
+}
+
+public map[loc, int] retrieveRBINHERITANCE(){
+	loc dataFile = dataDir + "RBINHERITANCE/<name>";
+	return readBinaryValueFile(#map[loc, int], dataFile);
+}
+
+public map[loc, int] retrieveNOM(){
+	loc dataFile = dataDir + "NOM/<name>";
+	return readBinaryValueFile(#map[loc, int], dataFile);
 }
 
 public map[loc, map[loc,int]] retrieveIIFA(){

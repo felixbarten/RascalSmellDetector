@@ -8,7 +8,8 @@ import Prelude;
 bool debugMode = false;
 bool consoleMode = true;
 bool logToProjectLogs = true;
-bool results = false;
+// verbose logging
+bool printAll = false;
 bool storeData = true;
 bool useMetricsAverages = false;
 // [rb]
@@ -44,7 +45,7 @@ public void setProjectLogging(bool b) {
 }
 
 public void setPrintIntermediaryResults(bool b) {
-	results = b;
+	printAll = b;
 }
 
 public void setStoreData(bool b) {
@@ -133,7 +134,7 @@ public int getCouplingThreshold() {
 }
 
 public bool getPrintIntermediaryResults() {
-	return results;
+	return printAll;
 }
 
 public bool getStoreData() {
@@ -178,4 +179,12 @@ public void enableRBDetector() {
 
 public void disableRBDetector(){
 	rbEnabled = false;
+}
+
+public void enablePrintAll() {
+	printAll = true;
+}
+
+public void enableVerboseLogging() {
+	printAll = true;
 }

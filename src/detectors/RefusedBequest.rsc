@@ -21,21 +21,40 @@ int totalCC = 0;
 int totalLOC = 0;
 map[loc, set[int]] locMap = ();
 map[loc, tuple[int wmc, real amw]] ccMap = ();
+map[loc, int] relationCount = ();
+map[loc, rel[loc,loc]] rawRelationsData = ();
+map[loc, int] clsNOMMap = ();
+rel[loc, loc] methodContainment = {};
 str prefix = "[RB]";
 bool useMetrics = false;
+bool printAll = false;
+bool fetchData = false;
 
 
-// INITIALIZE 
+// Initialize with no stored data
 public void initialize(M3 model) {
 	output("<prefix> Initializing RB detector...");
 	setGlobalVars(calculateLOC(model), calculateClassesCC(model));
 }
 
+// initialized with stored data. 
 public void initialize(M3 model, 
 		tuple[rel[loc,int],int,int,int,real] LOC,
-		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
-	setGlobalVars(LOC, CC);
+		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC,
+		map[loc, int] INHERITANCE,
+		map[loc, int] NOM) {
+	setGlobalVars(LOC, CC, INHERITANCE, NOM);
 	output("<prefix> RB detector state restored.");
+}
+
+
+void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
+		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC,
+		map[loc, int] INHERITANCE,
+		map[loc, int] NOM) {
+	setGlobalVars(LOC, CC);
+	relationCount = INHERITANCE;
+	clsNOMMap = NOM;
 }
 
 void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
@@ -48,6 +67,7 @@ void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
 	ccMap = CC[0];
 	avgAMW = CC[3];
 	useMetrics = getUseMetricsAverages();
+	printAll =  getPrintIntermediaryResults();
 	
 	printLinesOfCode(LOC[0], totalLOC, avgLOC);
 	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
@@ -61,7 +81,8 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	// step 2a: Visit classes to see if they have a superclass. If not skip. 
 	// Step 2b  If they do have a superclass can we access it or is it a default library?
 	// Step 3:  Perform analysis on parent and child. 
-
+	fetchData = processed;
+	methodContainment = {};
 	if(!processed) {
 		initialize(model);
 	}
@@ -74,7 +95,7 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	rel[loc,loc,bool] RBCandidates = {};
 	list[loc] nonTrivialClasses = [];
 	bool RB = false;
-	N = now();
+	datetime N = now();
 	int count = 0;
 	output("<prefix> Detecting Refused Bequest...");
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
@@ -106,7 +127,11 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	
 	printRB(detectedRBClasses, nonTrivialClasses);
 	
-	storeInformation(model, processed);
+	if(!processed) {
+		storeModel(model);
+		storeNOM(clsNOMMap);
+		storeRBDetectorInformation(relationCount, rawRelationsData);
+	}
 
 	addProjectToReport(project, totalLOC, totalCC, size(detectedRBClasses));
 	
@@ -117,8 +142,10 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 rel[loc,loc,bool] detectRB(M3 model, 
 		loc project, 
 		tuple[rel[loc,int],int,int,int,real] LOC,
-		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
-	initialize(model, LOC, CC);
+		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC,
+		map[loc, int] INHERITANCE,
+		map[loc, int] NOM){ 
+	initialize(model, LOC, CC, INHERITANCE, NOM);
 	return detectRB(model, project, processed = true);
 }
 
@@ -131,13 +158,6 @@ void printProgress(int count, datetime N){
 		output("<prefix> RB detector has been running: <convertIntervalToStr(N)>");
 	}
 }
-
-void storeInformation(M3 model, bool processed) {
-	if(!processed) {
-		storeModel(model);
-	}
-}
-
 
 // Cls must have a superclass and superclass needs to be accessible within the project. 
 bool classIsValid(tuple[loc, loc] classes) {
@@ -184,33 +204,44 @@ list[loc] getNProtMList(M3 model, loc parent) {
 
 
 // BUR < 0.33
-bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) { 
+bool childRefusesBequest(M3 model, loc child, loc parent) { 
 	// calculate BUR: Base Class Usage Ratio.
 	// "The number of inheritance-specific members used by the measured class,
 	// divided by the total number of inheritance-specific members from the base
 	// class"
+	datetime N = now();
 	int usedMembers = 0;
-	list[loc] parentMemberLocs = getNProtMList(model, parentLoc);
+	list[loc] parentMemberLocs = getNProtMList(model, parent);
 	int parentMembers = size(parentMemberLocs);
 	rel[loc, loc] foundRelations = {};
 	int memberCount = 0;
 		
-	// loop through field access and method invoc. 
-	//  Check if this class is the start point and check if the end point is one of the protected parent members. 
-	for (<from, to> <- model.fieldAccess, 
-			from.parent.path == childLoc.path
-			&& to in parentMemberLocs
-			&& isFile(to)) {
-		memberCount += 1;
-		foundRelations += <from, to>;
-	}
-	
-	for (<from, to> <- model.methodInvocation, 
-			from.parent.path == childLoc.path 
-			&& to in parentMemberLocs
-			&& isFile(to)) {		
-		memberCount += 1;
-		foundRelations += <from, to>;
+	// processing intensive store data when done. 
+	if(!fetchData) {
+		// loop through field access and method invoc. 
+		//  Check if this class is the start point and check if the end point is one of the protected parent members. 
+		for (<from, to> <- model.fieldAccess, 
+				from.parent.path == child.path
+				&& to in parentMemberLocs
+				&& isFile(to)) {
+			memberCount += 1;
+			foundRelations += <from, to>;
+		}
+		
+		for (<from, to> <- model.methodInvocation, 
+				from.parent.path == child.path 
+				&& to in parentMemberLocs
+				&& isFile(to)) {		
+			memberCount += 1;
+			foundRelations += <from, to>;
+		}
+		relationCount[child] = memberCount;
+		rawRelationsData[child] = foundRelations;		
+	} else {
+		if (child notin relationCount) {
+			output("Error: Key not found: <child>");
+		}
+		memberCount = relationCount[child];
 	}
 		
 	real ratio = 0.0;
@@ -220,12 +251,14 @@ bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) {
 	} 
 		
 	bool condition = ratio < 0.33;
-	debug("<childLoc> refuses bequest: <condition>, <ratio>");
+	debug("<child> refuses bequest: <condition>, <ratio>");
+	output("<prefix> Finished BUR calculations in <convertIntervalToStr(N)>", printAll);
 	return condition;
 }
 
 // BOvR < 0.33. 
 bool childHasFewOverrides(M3 model, loc child) { 
+	datetime N = now();
 	int highThreshold = getBequestHighOverrideThreshold();
 	int lowThreshold = getBequestLowOverrideThreshold();
 	rel[loc,loc] overridesList = getClsOverridesList(model, child);
@@ -244,6 +277,7 @@ bool childHasFewOverrides(M3 model, loc child) {
 	}
 	condition = BOvR < 0.33;
 	debug("[overrides] <child> has more overrides than threshold", condition); 
+	output("<prefix> Finished BOvR calculations in <convertIntervalToStr(N)>", printAll);
 	return condition;
 } 
 
@@ -294,13 +328,18 @@ bool classSizeAbvAvg(M3 model, loc cls) {
 // Return NOM (Number of Methods).
 int getClsNOM(M3 model, loc cls) {
 	int NOM = 0;	
-	methodContainment = {<c,m> | <c,m> <- model.containment, isMethod(m)};
-	
-	for (<class, method> <- methodContainment, class == cls) {
-		NOM += 1;
+	if(cls notin clsNOMMap) {
+		if (methodContainment == {}) {
+			// very compute intensive to filter.
+			methodContainment = {<c,m> | <c,m> <- model.containment, isMethod(m)};
+		}
+		for (<class, method> <- methodContainment, class == cls) {
+			NOM += 1;
+		}
+		debug("<NOM>");
+		clsNOMMap[cls] = NOM;
 	}
-	debug("<NOM>");
-	return NOM;
+	return clsNOMMap[cls];
 }
 
 int getClsOverrides(M3 model, loc child) {

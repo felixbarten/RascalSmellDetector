@@ -164,7 +164,7 @@ rel[loc,loc] combineThresholdMaps(map[loc, map[loc, int]] iicc, map[loc, map[loc
 				int record = matches[caller][callee];
 				int updatedValue = record + iifa[caller][callee];
 				matches[caller][callee] =  updatedValue;
-				output("Amended record: <record> -\> <updatedValue>");
+				output("Amended record: <record> -\> <updatedValue>", printAll);
 			}
 		}
 	}	
@@ -181,7 +181,7 @@ rel[loc,loc] combineThresholdMaps(map[loc, map[loc, int]] iicc, map[loc, map[loc
 		storeIICOMB(matches);
 	}
 	
-	output("Size before <origSize> size after: <size(matches)>");
+	output("<prefix> Size before <origSize> size after: <size(matches)>");
 	output("<prefix> Finished merging maps in <convertIntervalToStr(N)>.");
 	return IISuspects;
 }

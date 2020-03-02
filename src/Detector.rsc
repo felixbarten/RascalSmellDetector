@@ -115,10 +115,12 @@ void reprocessProject(loc project) {
 	// register project with rascal to rebuild location database for resolving java+class locs. 
 	registerProject(project, model);
 
+	RBINH = retrieveRBINHERITANCE();
+	NOM = retrieveNOM();
 	IIFA = retrieveIIFA();
 	IICC = retrieveIICC();
 	
-	detectRB(model, project, LOC, CC);
+	detectRB(model, project, LOC, CC, RBINH, NOM);
 	detectII(model, IICC, IIFA);	
 	cleanup(model, project);
 }

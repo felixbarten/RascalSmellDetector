@@ -28,10 +28,12 @@ datetime startTime = now();
 list[str] dataTypes = [
 	"CC", 
 	"LOC", 
+	"NOM", 
 	"M3",
 	"IICC", 
 	"IIFA",
-	"IICOMB"
+	"IICOMB",
+	"RBINHERITANCE"
 	];
 
 public void startLog(loc directory = |home:///|) {
@@ -332,10 +334,15 @@ public void debug(str msg, bool condition){
 
 public str convertIntervalToStr(interval i) {
 	Duration duration = createDuration(i);
+	str msg = "";
 	if (duration.days > 0) { 
-		return "<duration.days> days and <duration.hours>:<duration.minutes>:<duration.seconds>";
+		msg = "<duration.days> days and ";
+	} 
+	msg = msg +  "<duration.hours>:<duration.minutes>:<duration.seconds>";
+	if (duration.hours == 0 && duration.minutes == 0 && duration.seconds == 0) {
+		msg = msg + " <duration.milliseconds> ms";
 	}
-	return "<duration.hours>:<duration.minutes>:<duration.seconds>";
+	return msg; 
 }
 
 public str convertIntervalToStr(datetime dt) {
