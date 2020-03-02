@@ -223,10 +223,11 @@ public void s6() {
 }
 
 public void test1() {
-	disableRBDetector();
+	println("Starting test");
+	enableDebugging();
+	enableLanzaMarinescuAvg();
 	main(|home:///projects|);
 }
-
 public void s7(loc directory) {
 	N = now();
 	//forgot a few permutations when running my data set. 

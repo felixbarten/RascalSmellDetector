@@ -60,7 +60,7 @@ public rel[loc,loc] detectII(M3 model){
 			continue;
 		}
 		// <debugging>
-		rawCC = addIfAbsent(caller, callee, rawCC);
+		rawCC = addIfAbsent(from, to, rawCC);
 		rawCC[from][to] += 1;
 		// </debugging>
 		
@@ -92,7 +92,7 @@ public rel[loc,loc] detectII(M3 model){
 			continue;
 		}
 		// <debugging>
-		rawFA = addIfAbsent(caller, callee, rawFA);
+		rawFA = addIfAbsent(from, to, rawFA);
 		rawFA[from][to] += 1;
 		// </debugging>
 				

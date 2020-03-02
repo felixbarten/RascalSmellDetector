@@ -10,16 +10,28 @@ bool consoleMode = true;
 bool logToProjectLogs = true;
 bool results = false;
 bool storeData = true;
+bool useMetricsAverages = false;
 // [rb]
 bool rbEnabled = true;
-int overrideThreshold = 3; 
-int protectedMemberThreshold = 3;
+int overrideLowThreshold = 2;
+int overrideHighThreshold = 5; 
+int protectedMemberLowThreshold = 2;
+int protectedMemberHighThreshold = 5; 
+
+// Lanza & Marinescu. 
+real javaAMWAVG = 2.0;
+int javaWMCAVG = 14;
+int javaNOMAVG = 7;
+int javaLOCAVG = 70;
+
 // [ii]
 bool iiEnabled = true;
 int couplingThreshold = 3;
 
 public void setDebugMode(bool b) {
-	if(b) println("Debugging mode is now enabled");
+	if(b) {
+		println("Debugging mode is now enabled");
+	}
 	debugMode = b;
 }
 
@@ -58,6 +70,31 @@ public void setRBEnabled(bool b) {
 public void setIIEnabled(bool b) {
 	iiEnabled = b;
 }
+
+public real getAMWAvg() {
+	return javaAMWAVG;
+}
+
+public int getWMCAvg() {
+	return javaWMCAVG;
+}
+
+public int getNOMAvg() {
+	return javaNOMAVG;
+}
+
+public int getLOCAvg() {
+	return javaLOCAVG;
+}
+
+public bool getUseMetricsAverages() {
+	return useMetricsAverages;
+}
+
+public bool setUseMetricsAverages(bool b) {
+	useMetricsAverages = b;
+}
+
 public bool getDebugMode() {
 	return debugMode;
 }
@@ -66,12 +103,21 @@ public bool getDebuggingMode() {
 	return debugMode;
 }
 
-public int getBequestOverrideThreshold() {
-	return overrideThreshold;
+public int getBequestHighOverrideThreshold() {
+	return overrideHighThreshold;
 }
 
-public int getProtectedMemberThreshold() {
-	return protectedMemberThreshold;
+public int getBequestLowOverrideThreshold() {
+	return overrideLowThreshold;
+}
+
+public int getProtectedMemberHighThreshold() {
+	return protectedMemberHighThreshold;
+}
+
+
+public int getProtectedMemberLowThreshold() {
+	return protectedMemberLowThreshold;
 }
 
 public bool getConsoleMode() {
@@ -104,6 +150,18 @@ public bool getRBEnabled() {
 
 public bool getIIEnabled() {
 	return iiEnabled;
+}
+
+public void enableDebugging() {
+	setDebugMode(true);
+}
+
+public void enableLanzaMarinescuAvg() {
+	useMetricsAverages = true;
+}
+
+public void disableLanzaMarinescuAvg() {
+	useMetricsAverages = false;
 }
 
 public void enableIIDetector() {

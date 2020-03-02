@@ -38,6 +38,7 @@ public rel[loc, int] calculateCompUnitsCC(M3 model) {
 // return map with WMC/AMW values per class, CC for the whole project, Average CC per class
 // Average Weighted Method count for the whole project.   
 public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClassesCC(M3 model) {
+	datetime dt = now();
 	classCC = {};
 	list[real] amwVals = [0.0];
 	processedClasses = [];
@@ -76,6 +77,8 @@ public tuple[map[loc, tuple[int wmc, real amw]], int, int, real] calculateClasse
 		avgWMC =(projectCC / size(classCC));
 	}
 	output("<prefix> Total project CC: <projectCC>");
+	output("<prefix> Finishing calculating complexity in <convertIntervalToStr(dt)>");
+	
 	tuple[map[loc, tuple[int wmc, real amw]], int, int, real] results = <CCMap, projectCC, avgWMC, avgAMW>;
 	
 	storeCC(results);

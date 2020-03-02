@@ -111,8 +111,8 @@ public void reportSettings() {
 	
 	appendToFile(report, "\n[Refused Bequest]\n");
 	appendToFile(report, "Detector enabled:\t<getRBEnabled()>\n");
-	appendToFile(report, "Override Threshold:\t<getBequestOverrideThreshold()>\n");
-	appendToFile(report, "Few protected members:\t<getProtectedMemberThreshold()>");
+	appendToFile(report, "Override Threshold:\t<getBequestHighOverrideThreshold()>\n");
+	appendToFile(report, "Few protected members:\t<getProtectedMemberHighThreshold()>");
 	
 	
 	appendToFile(report, "\n\n[Inappropriate Intimacy]\n");

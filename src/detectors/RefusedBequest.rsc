@@ -22,7 +22,10 @@ int totalLOC = 0;
 map[loc, set[int]] locMap = ();
 map[loc, tuple[int wmc, real amw]] ccMap = ();
 str prefix = "[RB]";
+bool useMetrics = false;
 
+
+// INITIALIZE 
 public void initialize(M3 model) {
 	output("<prefix> Initializing RB detector...");
 	setGlobalVars(calculateLOC(model), calculateClassesCC(model));
@@ -44,10 +47,13 @@ void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
 	locMap = toMap(LOC[0]);
 	ccMap = CC[0];
 	avgAMW = CC[3];
+	useMetrics = getUseMetricsAverages();
 	
 	printLinesOfCode(LOC[0], totalLOC, avgLOC);
 	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
 }
+
+// DETECTION
 
 // detect RB using Lanza and Marinescu's metrics 
 public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false) {	
@@ -76,7 +82,7 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 		loc child = cls[0];
 		loc parent = cls[1];
 		// this step needs to be executed anyway so barely any performance loss for logging non-trivial classes.
-		bool notSimple = classIsNotSimple(child);
+		bool notSimple = classIsNotSimple(model, child);
 		if(notSimple) {		
 			debug("<child> is not a simple class");
 			nonTrivialClasses += child;
@@ -107,6 +113,16 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	return detectedRBClasses;
 }
 
+//use processed data
+rel[loc,loc,bool] detectRB(M3 model, 
+		loc project, 
+		tuple[rel[loc,int],int,int,int,real] LOC,
+		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
+	initialize(model, LOC, CC);
+	return detectRB(model, project, processed = true);
+}
+
+
 void printProgress(int count, datetime N){
 	if(count % 250 == 0) {
 		output("<prefix> Processed <count> classes");
@@ -122,67 +138,85 @@ void storeInformation(M3 model, bool processed) {
 	}
 }
 
-//use processed data
-rel[loc,loc,bool] detectRB(M3 model, 
-		loc project, 
-		tuple[rel[loc,int],int,int,int,real] LOC,
-		tuple[map[loc, tuple[int wmc, real amw]], int, int, real] CC) {
-	initialize(model, LOC, CC);
-	return detectRB(model, project, processed = true);
-}
 
 // Cls must have a superclass and superclass needs to be accessible within the project. 
 bool classIsValid(tuple[loc, loc] classes) {
 	return isFile(classes[0])  && isFile(classes[1]);
 }
 
+// (functional complexity above average || class complexity is not lower than average). && Class size is above average. 
+// (AMW > AVG || WMC > AVG ) && NOM > AVG
+bool classIsNotSimple(M3 model, loc cls) {
+	return (funcComplexityAbvAvg(cls) || classComplexityAbvAvg(cls)) && classSizeAbvAvg(model, cls);
+}
+
+
 // (NProtM > FEW && BUR < 0.33 ) || BOvR < 0.33
 bool classIgnoresBequest(M3 model, loc child, loc parent) {
-	return (parentHasProtectedMembers(model, parent) && childRefusesBequest(model, child, parent)) || childHasFewOverrides(model, child);
+	return (parentHasMoreThanAFewProtectedMembers(model, parent) && childRefusesBequest(model, child, parent)) || childHasFewOverrides(model, child);
 }
 
-bool parentHasProtectedMembers(M3 model, loc parent) { 
-	int threshold = getProtectedMemberThreshold();
-	// 1. loop through modifiers 2. find matches to parent loc 3. count occurences. 
-	int count = 0;
+// NProtM > FEW 
+bool parentHasMoreThanAFewProtectedMembers(M3 model, loc parent) { 
+	int threshold = getProtectedMemberHighThreshold();
+	return getNProtM(model, parent) > threshold;
+}
+
+// return NProtM
+int getNProtM(M3 model, loc parent) {
+	int NProtM = 0;
+	//compare paths instead of locations and check if the modifier is protected. 
 	for (m <- model.modifiers, m[0].parent.path == parent.path && m[1] == \protected()) {
-		count += 1;
-	}	
-	return count > threshold;
+		NProtM += 1;
+	}
+	return NProtM;
 }
 
+// return protected members
+list[loc] getNProtMList(M3 model, loc parent) {
+	list[loc] NProtM = [];
+	//compare paths instead of locations and check if the modifier is protected. 
+	for (<location, modifier> <- model.modifiers, location.parent.path == parent.path && modifier == \protected()) {
+		NProtM += location;
+	}
+	return NProtM;
+}
+
+
+// BUR < 0.33
 bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) { 
 	// calculate BUR: Base Class Usage Ratio.
 	// "The number of inheritance-specific members used by the measured class,
 	// divided by the total number of inheritance-specific members from the base
 	// class"
 	int usedMembers = 0;
-	int parentMembers = 0; 
-	
-	for (m <- model.modifiers, m[0].parent.path == parentLoc.path && m[1] == \protected()) {
-		parentMembers += 1;
-	}	
+	list[loc] parentMemberLocs = getNProtMList(model, parentLoc);
+	int parentMembers = size(parentMemberLocs);
+	rel[loc, loc] foundRelations = {};
+	int memberCount = 0;
 		
-	int count = 0;
-	// check field[0] against child, check field[1] against parent. Check if parent[1] is a dependency within the project. 
-	for (field <- model.fieldAccess, 
-			field[0].parent.path == childLoc.path
-			&& field[1].parent.path == parentLoc.path
-			&& isFile(field[1])) {
-		count += 1;
+	// loop through field access and method invoc. 
+	//  Check if this class is the start point and check if the end point is one of the protected parent members. 
+	for (<from, to> <- model.fieldAccess, 
+			from.parent.path == childLoc.path
+			&& to in parentMemberLocs
+			&& isFile(to)) {
+		memberCount += 1;
+		foundRelations += <from, to>;
 	}
 	
-	for (field <- model.methodInvocation, 
-			field[0].parent.path == childLoc.path 
-			&& field[1].parent.path == parentLoc.path
-			&& isFile(field[1])) {		
-		count += 1;
+	for (<from, to> <- model.methodInvocation, 
+			from.parent.path == childLoc.path 
+			&& to in parentMemberLocs
+			&& isFile(to)) {		
+		memberCount += 1;
+		foundRelations += <from, to>;
 	}
 		
 	real ratio = 0.0;
 	// prevent div/0 parent may genuinely be 0. 
 	if (parentMembers > 0) {
-		ratio = toReal(count) / toReal(parentMembers);
+		ratio = toReal(memberCount) / toReal(parentMembers);
 	} 
 		
 	bool condition = ratio < 0.33;
@@ -190,64 +224,105 @@ bool childRefusesBequest(M3 model, loc childLoc, loc parentLoc) {
 	return condition;
 }
 
+// BOvR < 0.33. 
 bool childHasFewOverrides(M3 model, loc child) { 
-	int threshold = getBequestOverrideThreshold();
+	int highThreshold = getBequestHighOverrideThreshold();
+	int lowThreshold = getBequestLowOverrideThreshold();
+	rel[loc,loc] overridesList = getClsOverridesList(model, child);
+	int overrides = size(overridesList);	
+	int NOM = getClsNOM(model, child);
 	str className = child.file; 
 	str classPath = child.path;
-	rel[loc, loc] overrides = {};
-	// loop through overrides
-	for (ov <- model.methodOverrides){ 	
-		// compare whole path partial names give too many matches especially with certain naming conventions. 
-		if(classPath == (ov[0].parent.path)){ 
-			overrides += ov; 
-			// either filter more here or do it in another loop. 
-		}
+
+	bool condition = false;
+	real BOvR = 0.0;
+	
+	if (overrides <= NOM) {
+		BOvR = toReal(overrides) / toReal(NOM);
+	} else {
+		BOvR = 1.0;
 	}
-	bool condition = size(overrides) > threshold;
-	debug("[overrides] <child> has more overrides than threshold"); 
+	condition = BOvR < 0.33;
+	debug("[overrides] <child> has more overrides than threshold", condition); 
 	return condition;
 } 
 
-// (functional complexity above average || class complexity is not lower than average). && Class size is above average. 
-// (AMW > AVG || WMC > AVG ) && NOM > AVG
-bool classIsNotSimple(loc cls) {
-	return (funcComplexityAbvAvg(cls) || classComplexityAbvAvg(cls)) && classSizeAbvAvg(cls);
-}
-
 bool funcComplexityAbvAvg(loc cls) {
-	checkIfClassHasValue(cls);
+	checkIfClassHasValue(cls); // prevent key not found. 
 	
-	bool condition = ccMap[cls].amw > avgAMW;
-	debug("Class <cls.file> has an AMW higher than the avg. <ccMap[cls].amw> avg: <avgAMW>");
-	
+	bool condition = false;
+	if(useMetrics) { 
+		condition = ccMap[cls].amw > getAMWAvg();
+		debug("Class <cls.file> has an AMW higher than the Lanza AMW. <ccMap[cls].amw> avg: <getAMWAvg()>");
+	} else {	
+		// compare to AMW avg of the project. 
+		condition = ccMap[cls].amw > avgAMW;
+		debug("Class <cls.file> has an AMW higher than the avg. <ccMap[cls].amw> avg: <avgAMW>");
+	}
 	return condition;
 }
 
 bool classComplexityAbvAvg(loc cls) { 
-	int clsCC = 0;
 	checkIfClassHasValue(cls);
-	clsCC = ccMap[cls].wmc;
+	int clsCC = ccMap[cls].wmc;
 	
 	// debugging
-	bool condition = clsCC > avgCC;
+	bool condition =  false;
+	if (useMetrics) { 
+		condition = clsCC > getWMCAvg();
+	} else {
+		condition = clsCC > avgCC;
+	}
 	debug("<cls> is more complex than avg: <clsCC> \> <avgCC> ");
 	return condition;
 }
 
-bool classSizeAbvAvg(loc cls) {
+bool classSizeAbvAvg(M3 model, loc cls) {
+	int clsNOM = getClsNOM(model, cls);
 	int clsLOC = 0;
-	if (cls in locMap){
-		// take the higest loc value for class if found multiple times 
-		clsLOC = max(locMap[cls]);
+	int avgLOC = 0;
+	
+	bool condition = false;
+	if (useMetrics) {
+		condition = clsNOM > getNOMAvg();
 	} else {
-		debug("Class size value not found in lines of code");
-		clsLOC = calculateLOCFromLocation(cls);
-		debug("Calculated loc... <clsLOC>");
+		condition = clsLOC > avgLOC; 
 	}
-	// debugging
-	bool condition = clsLOC > avgLOC;
-	debug("<cls> is above avg class size: <clsLOC> \> <avgLOC>\n");
 	return condition;
+}
+
+// Return NOM (Number of Methods).
+int getClsNOM(M3 model, loc cls) {
+	int NOM = 0;	
+	methodContainment = {<c,m> | <c,m> <- model.containment, isMethod(m)};
+	
+	for (<class, method> <- methodContainment, class == cls) {
+		NOM += 1;
+	}
+	debug("<NOM>");
+	return NOM;
+}
+
+int getClsOverrides(M3 model, loc child) {
+	int overrides = 0;
+	str className = child.file; 
+	str classPath = child.path;
+	
+	for (<from, to> <- model.methodOverrides, from.parent.path == classPath) { 
+		overrides += 1;
+	}
+	return overrides;
+}
+
+rel[loc, loc] getClsOverridesList(M3 model, loc child) {
+	rel[loc, loc] overrides = {};
+	str className = child.file; 
+	str classPath = child.path;
+	
+	for (<from, to> <- model.methodOverrides, from.parent.path == classPath) { 
+		overrides += <from, to>;
+	}
+	return overrides;
 }
 
 // some anon classes can have no separate value. if they're missing add them to the map. Not sure if this causes problems by counting some classes twice.

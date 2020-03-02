@@ -39,7 +39,7 @@ public real getAvgLOC(int totalLOC, int numberOfFiles) {
 }
 
 // duplication unfortunately. 
-// detector needs avg size but it doesn't clearly specify if it's with or without interfaces?.
+// detector needs avg size but it doesn't clearly specify if it's with or without interfaces?
 public real calculateAvgClassLOC(M3 model) {
 	list[tuple[int, int, int]] LOCcontainer = [];	
 	for (cu <- model.containment, cu[0].scheme == "java+compilationUnit" && 
@@ -52,18 +52,14 @@ public real calculateAvgClassLOC(M3 model) {
 	return getAvgLOC(totalLOC[0], size(LOCcontainer)); 
 }
 
-// There are some arbitrary keywords such as loc. 
-//The program will stop syntax highlighting if this is the case (without visible IDE errors).
 public tuple[int locNum, int blank, int comments] getTotalLOC(list[tuple[int locNum, int blank, int comments]] locs){
 	tuple[int locNum, int blank, int comments] totalLOC = <0,0,0>;
-	
 	// Surely this can be done with like a map function 
 	for (subLOC <- locs) { 
 		totalLOC.locNum += subLOC.locNum;
 		totalLOC.blank += subLOC.blank;
 		totalLOC.comments += subLOC.comments;
 	}
-	
 	return totalLOC;
 }
 
