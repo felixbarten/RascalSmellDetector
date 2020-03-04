@@ -22,7 +22,9 @@ loc logDir = |home:///log|;
 loc reportsDir = |home:///log/reports|;
 bool consoleEnabled = true;
 bool logToProjectFiles = false;
-bool printAll = getPrintIntermediaryResults();
+bool printAll = false;
+bool debugMode = false;
+bool logOnly = true;
 bool initialized = false;
 datetime startTime = now();
 list[str] dataTypes = [
@@ -36,16 +38,28 @@ list[str] dataTypes = [
 	"RBINHERITANCE"
 	];
 
+public void initializeLogger() {
+	// refresh settings. 
+	logToProjectFiles = getProjectLogging();
+	printAll = getVerboseLoggingMode();
+	debugMode = getDebuggingMode();
+	logOnly = getDebuggingLogOnly();
+}
+
+
 public void startLog(loc directory = |home:///|) {
+	initializeLogger(); 
 	initializeDirectories(directory = directory);
 	// printing in locale doesnt fix the 2 hours discrepancy
 	datetime dt = incrementHours(now(), 2);
 	str fileName = printDateTime(dt, "yyyy-MM-dd__HH_mm");
 	logFile = logDir + "mainlog<fileName>";
 	writeFile(logFile, "Start of LogFile\n\n");
-	if(getDebuggingMode()) {
+	if(debugMode) {
 		debugFile = logDir + "debug<fileName>";
-		if(!isFile(debugFile)) writeFile(debugFile, "Start of Debug LogFile\n\n");	
+		if(!isFile(debugFile)){
+			 writeFile(debugFile, "Start of Debug LogFile\n\n");	
+		}
 	}
 	consoleEnabled = getConsoleMode();
 	logToProjectFiles = getProjectLogging();
@@ -53,7 +67,7 @@ public void startLog(loc directory = |home:///|) {
 	initialized = true;
  }
 
-// create directories
+// create directory structure
 // rascaldetector
 // 		data
 // 			<data folders>
@@ -73,7 +87,9 @@ public void initializeDirectories(loc directory = |home:///|) {
 	reportsDir = reportsDirectory;
 	projectsDir = projectsDirectory;
 
-	if(!isDirectory(baseDir)) println("creating folder structure in: <resolveLocation(baseDir)>");
+	if(!isDirectory(baseDir))  {
+		println("[MAIN] Creating folder structure in: <resolveLocation(baseDir)>");
+	}
 	createDirectory(baseDir);
 	createDirectory(logDir);
 	createDirectory(reportsDir);
@@ -110,6 +126,8 @@ public void reportSettings() {
 	appendToFile(report, "[Detector]\n");
 	appendToFile(report, "Debugging: \t\t<getDebuggingMode()>\n");
 	appendToFile(report, "Data storage:\t\t<getDataStorage()>\n");
+	appendToFile(report, "Lanza & Marinescu avgs:\t\t<getUseMetricsAverages()>\n");
+	
 	
 	appendToFile(report, "\n[Refused Bequest]\n");
 	appendToFile(report, "Detector enabled:\t<getRBEnabled()>\n");
@@ -253,11 +271,10 @@ public void printII(rel[loc,loc] ii) {
 	for (tuple[loc l1, loc l2] r <- ii) {
 		appendToFile(logFile, "<r.l1> & <r.l2>\n");
 	}
-	appendToFile(logFile, "All classes with II:\n\n");
+	appendToFile(logFile, "\nAll classes with II:\n\n");
 	for (loc l <- carrier(ii)) {
 		appendToFile(logFile, "<l>\n");
 	}
-	
 	debug("Saved results of II detection in <resolveLocation(logFile)>");
 }
 
@@ -317,16 +334,20 @@ public void output(str msg, bool condition) {
 
 // move to debugging file.
 public void debug(str msg) {
-	if(getDebugMode()){
+	if(debugMode){
 		str msg = "[DEBUG] <msg>\n";
-		print(msg);
+		if(!logOnly) {
+			print(msg);
+		}
 		appendToFile(debugFile, msg);
 	}
 }
 
 public void debug(str msg, bool condition){
-	if(condition && getDebugMode()) {
-		println("[DEBUG] <msg>");
+	if(condition && debugMode) {
+		if(!logOnly) {
+			println("[DEBUG] <msg>");
+		}
 		appendToFile(debugFile, msg + "\n");
 	}
 	

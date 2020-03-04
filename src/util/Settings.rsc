@@ -6,12 +6,14 @@ import Prelude;
 
 // [detector]
 bool debugMode = false;
+bool debugLogOnly = false;
 bool consoleMode = true;
 bool logToProjectLogs = true;
 // verbose logging
 bool printAll = false;
 bool storeData = true;
-bool useMetricsAverages = false;
+// use lanza/marinescu avgs
+bool useMetricsAverages = true;
 // [rb]
 bool rbEnabled = true;
 int overrideLowThreshold = 2;
@@ -29,27 +31,48 @@ int javaLOCAVG = 70;
 bool iiEnabled = true;
 int couplingThreshold = 3;
 
+str prefix = "[SETTINGS] ";
+
 public void setDebugMode(bool b) {
-	if(b) {
-		println("Debugging mode is now enabled");
-	}
+	str status = b ? "enabled" : "disabled";
+	println("<prefix> Debugging mode is now <status>.");
 	debugMode = b;
 }
 
+public void setDebugLogOnly(bool b) {
+	str status = b ? "no" : "yes";
+	println("<prefix> Display debugging messages in console: <status>.");
+	debugLogOnly = b;
+}
+
 public void setConsoleMode(bool b) {
+	str status = b ? "enabled" : "disabled";
+	println("<prefix> Console logging mode is now <status>.");
 	consoleMode = b;
 }
 
 public void setProjectLogging(bool b) {
+	str status = b ? "enabled" : "disabled";
+	println("<prefix> Project logging mode is now <status>.");
 	logToProjectLogs = b;
 }
 
-public void setPrintIntermediaryResults(bool b) {
+public void setVerboseLogging(bool b) {
+	str status = b ? "enabled" : "disabled";
+	println("<prefix> Verbose logging mode is now <status>.");
 	printAll = b;
 }
 
 public void setStoreData(bool b) {
+	str status = b ? "enabled" : "disabled";
+	println("<prefix> Data storage mode is now <status>.");
 	storeData = b;
+}
+
+public void setUseMetricsAverages(bool b) {
+	str status = b ? "enabled" : "disabled";
+	println("<prefix> Lanza and Marinescu averages <status>.");
+	useMetricsAverages = b;
 }
 
 public void setOverrideThreshold(int n) {
@@ -92,8 +115,8 @@ public bool getUseMetricsAverages() {
 	return useMetricsAverages;
 }
 
-public bool setUseMetricsAverages(bool b) {
-	useMetricsAverages = b;
+public bool getVerboseLoggingMode() {
+	return printAll;
 }
 
 public bool getDebugMode() {
@@ -102,6 +125,10 @@ public bool getDebugMode() {
 
 public bool getDebuggingMode() {
 	return debugMode;
+}
+
+public bool getDebuggingLogOnly() {
+	return debugLogOnly;
 }
 
 public int getBequestHighOverrideThreshold() {
@@ -156,13 +183,17 @@ public bool getIIEnabled() {
 public void enableDebugging() {
 	setDebugMode(true);
 }
+public void enableDebugging(bool log) {
+	setDebugMode(true);
+	setDebugLogOnly(log);
+}
 
 public void enableLanzaMarinescuAvg() {
-	useMetricsAverages = true;
+	setUseMetricsAverages(true);
 }
 
 public void disableLanzaMarinescuAvg() {
-	useMetricsAverages = false;
+	setUseMetricsAverages(false);
 }
 
 public void enableIIDetector() {
@@ -186,5 +217,5 @@ public void enablePrintAll() {
 }
 
 public void enableVerboseLogging() {
-	printAll = true;
+	setVerboseLogging(true);
 }

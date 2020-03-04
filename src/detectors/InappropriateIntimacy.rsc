@@ -17,7 +17,8 @@ str  prefix = "[II]";
 public void initialize() {
 	threshold = getCouplingThreshold();
 	debugMode = getDebugMode();
-	printAll =  getPrintIntermediaryResults();
+	printAll =  getVerboseLoggingMode();
+	debug("II (re)initialized with settings: <threshold>, <debugMode> <printAll>", printAll);
 }
 
 // detect II with Fowler's smell definition.
@@ -104,10 +105,11 @@ public rel[loc,loc] detectII(M3 model){
 			output("[II] Processed <fieldCount> accessed fields.");
 		}
 	}
+	output("<prefix> Storing data.");
 	//store field access data
 	storeIIFA(classAccess);
 	storeRawDebugMaps(rawCC, rawFA);
-	
+	output("<prefix> Combining maps.");
 	rel[loc,loc] suspectedII = combineThresholdMaps(classCalls, classAccess, true);
 	
 	II = checkSuspects(suspectedII);

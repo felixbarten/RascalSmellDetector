@@ -25,7 +25,9 @@ map[loc, int] relationCount = ();
 map[loc, rel[loc,loc]] rawRelationsData = ();
 map[loc, int] clsNOMMap = ();
 rel[loc, loc] methodContainment = {};
+map[loc, int] NProtMMap = ();
 str prefix = "[RB]";
+// settings.rsc
 bool useMetrics = false;
 bool printAll = false;
 bool fetchData = false;
@@ -35,6 +37,17 @@ bool fetchData = false;
 public void initialize(M3 model) {
 	output("<prefix> Initializing RB detector...");
 	setGlobalVars(calculateLOC(model), calculateClassesCC(model));
+}
+
+// clean up after processing project
+public void resetRB() {
+	methodContainment = {};
+	relationCount = ();
+	rawRelationsData = ();
+	clsNOMMap = ();
+	ccMap = ();
+	locMap = ();
+	NProtMMap = ();
 }
 
 // initialized with stored data. 
@@ -67,7 +80,7 @@ void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
 	ccMap = CC[0];
 	avgAMW = CC[3];
 	useMetrics = getUseMetricsAverages();
-	printAll =  getPrintIntermediaryResults();
+	printAll =  getVerboseLoggingMode();
 	
 	printLinesOfCode(LOC[0], totalLOC, avgLOC);
 	printCyclomaticComplexity(ccMap, totalCC, printAll = false);
@@ -98,10 +111,16 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	datetime N = now();
 	int count = 0;
 	output("<prefix> Detecting Refused Bequest...");
+	classesContainment = {<from, to> | <from, to> <- model.containment, isClass(to)};
+	int totalClasses = size(classesContainment);
+	
+	candidates = {cls | cls <- model.extends, classIsValid(cls)};
+	int maxCandidates = size(candidates);
+	
+	output("<prefix> <maxCandidates> Candidates out of <totalClasses> Classes.");
+	
 	// loop through the extended classes. This satisfies the precondition step in 2a and 2b. 
-	for(cls <- model.extends, classIsValid(cls)) {
-		loc child = cls[0];
-		loc parent = cls[1];
+	for(<child, parent> <- candidates) {
 		// this step needs to be executed anyway so barely any performance loss for logging non-trivial classes.
 		bool notSimple = classIsNotSimple(model, child);
 		if(notSimple) {		
@@ -110,14 +129,14 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 		}
 		// crucial for performance to only perform second calculation if class is not simple (3x the processing time without(or more)
 		RB = notSimple && classIgnoresBequest(model, child, parent);
-		tuple[loc,loc,bool] temp =<child, parent, RB>;
+		tuple[loc,loc,bool] temp = <child, parent, RB>;
 		
 		if(RB) {
 			detectedRBClasses  += temp;
 			debug("RB: <temp>");
 		}
 		count += 1;
-		printProgress(count, N);
+		printProgress(count, maxCandidates, N);
 	}
 		
 	output("<prefix> Number of RB candidates: <count> ");
@@ -134,7 +153,7 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 	}
 
 	addProjectToReport(project, totalLOC, totalCC, size(detectedRBClasses));
-	
+	resetRB();
 	return detectedRBClasses;
 }
 
@@ -150,11 +169,11 @@ rel[loc,loc,bool] detectRB(M3 model,
 }
 
 
-void printProgress(int count, datetime N){
+void printProgress(int count, int max, datetime N){
 	if(count % 250 == 0) {
-		output("<prefix> Processed <count> classes");
+		output("<prefix> Processed <count>/<max> classes");
 	}
-	if(count % 2000 == 0) {
+	if(count % 1000 == 0) {
 		output("<prefix> RB detector has been running: <convertIntervalToStr(N)>");
 	}
 }
@@ -184,22 +203,29 @@ bool parentHasMoreThanAFewProtectedMembers(M3 model, loc parent) {
 
 // return NProtM
 int getNProtM(M3 model, loc parent) {
-	int NProtM = 0;
-	//compare paths instead of locations and check if the modifier is protected. 
-	for (m <- model.modifiers, m[0].parent.path == parent.path && m[1] == \protected()) {
-		NProtM += 1;
+	if (parent notin NProtMMap) {
+		int NProtM = 0;
+		//compare paths instead of locations and check if the modifier is protected. 
+		for (<location, modifier> <- model.modifiers, location.parent.path == parent.path && modifier == \protected()) {
+			NProtM += 1;
+		}
+		NProtMMap[parent] = NProtM;
 	}
-	return NProtM;
+	return NProtMMap[parent];
 }
 
 // return protected members
 list[loc] getNProtMList(M3 model, loc parent) {
-	list[loc] NProtM = [];
+	list[loc] NProtMList = [];
 	//compare paths instead of locations and check if the modifier is protected. 
 	for (<location, modifier> <- model.modifiers, location.parent.path == parent.path && modifier == \protected()) {
-		NProtM += location;
+		NProtMList += location;
 	}
-	return NProtM;
+	
+	if(parent notin NProtMMap) {
+		NProtMMap[parent] = size(NProtMList);
+	}
+	return NProtMList;
 }
 
 
@@ -239,7 +265,9 @@ bool childRefusesBequest(M3 model, loc child, loc parent) {
 		rawRelationsData[child] = foundRelations;		
 	} else {
 		if (child notin relationCount) {
+			// recovering from this error would be very computationally expensive. 
 			output("Error: Key not found: <child>");
+			return false;
 		}
 		memberCount = relationCount[child];
 	}
@@ -283,31 +311,31 @@ bool childHasFewOverrides(M3 model, loc child) {
 
 bool funcComplexityAbvAvg(loc cls) {
 	checkIfClassHasValue(cls); // prevent key not found. 
-	
+	real amw = ccMap[cls].amw;
 	bool condition = false;
 	if(useMetrics) { 
-		condition = ccMap[cls].amw > getAMWAvg();
+		condition = amw  > getAMWAvg();
 		debug("Class <cls.file> has an AMW higher than the Lanza AMW. <ccMap[cls].amw> avg: <getAMWAvg()>");
 	} else {	
 		// compare to AMW avg of the project. 
-		condition = ccMap[cls].amw > avgAMW;
-		debug("Class <cls.file> has an AMW higher than the avg. <ccMap[cls].amw> avg: <avgAMW>");
+		condition = amw > avgAMW;
+		debug("Class <cls.file> has an AMW higher than the avg. <amw> avg: <avgAMW>");
 	}
 	return condition;
 }
 
 bool classComplexityAbvAvg(loc cls) { 
 	checkIfClassHasValue(cls);
-	int clsCC = ccMap[cls].wmc;
+	int clsWMC = ccMap[cls].wmc;
 	
 	// debugging
 	bool condition =  false;
 	if (useMetrics) { 
-		condition = clsCC > getWMCAvg();
+		condition = clsWMC > getWMCAvg();
 	} else {
-		condition = clsCC > avgCC;
+		condition = clsWMC > avgCC;
 	}
-	debug("<cls> is more complex than avg: <clsCC> \> <avgCC> ");
+	debug("<cls> is more complex than avg: <clsWMC> \> <avgCC> ");
 	return condition;
 }
 
@@ -336,7 +364,6 @@ int getClsNOM(M3 model, loc cls) {
 		for (<class, method> <- methodContainment, class == cls) {
 			NOM += 1;
 		}
-		debug("<NOM>");
 		clsNOMMap[cls] = NOM;
 	}
 	return clsNOMMap[cls];

@@ -20,18 +20,16 @@ public loc defaultDir = |file:///|;
 str prefix = "[MAIN]";
 bool reportInitialized = false;
 
-private void initialize(bool debugging, bool projectLogging, bool enableConsole, bool printAll, bool dataStorage, bool oneReport) {
-	setDebugMode(debugging);
+private void initialize(bool projectLogging, bool enableConsole, bool dataStorage, bool oneReport) {
 	setProjectLogging(projectLogging);
 	setConsoleMode(enableConsole);
-	setPrintIntermediaryResults(printAll);
 	setStoreData(dataStorage);
 
 	startProcessing(oneReport);
 }
 
 public void startProcessing(bool oneReport) {
-	initializeDS();
+	initializeDataStorage();
 	startLog();
 	// don't start a new report file if 
 	if(oneReport) {
@@ -48,12 +46,12 @@ public void endProcessing() {
 	endLog();
 }
 
-public void main(loc directory, bool debugging = false, bool projectLogging = true, bool console = true, bool results = false, bool dataStorage = true, bool oneReport = false) {
+public void main(loc directory, bool projectLogging = true, bool console = true, bool dataStorage = true, bool oneReport = false) {
 	if(!isDirectory(directory)) {
 		println("<directory> is not a directory!");
 		return;
 	}
-	initialize(debugging, projectLogging, console, results, dataStorage, oneReport);
+	initialize(projectLogging, console, dataStorage, oneReport);
 	mainTime = now();
 
 	str subdir = printDateTime(now(), "yyyy-MM-dd___HH_mm");
@@ -66,8 +64,8 @@ public void main(loc directory, bool debugging = false, bool projectLogging = tr
 	int projectNum = size(projects);
 	
 	for (project <- projects) {
-		output("<prefix> Processing project <count> of <projectNum>: <project>");
 		loc logFile = startProjectLog(project.file, subdir);
+		output("<prefix> Processing project <count> of <projectNum>: <project>");
 		startTime = now();
 		// check datavault for processed data
 		bool processed = checkProjectData(project);
@@ -215,18 +213,22 @@ public void s4() {
 }
 
 public void s5() {
-	//main(|file:///I:/corpus/pt1/20130901r/Systems|);
-	main(|file:///I:/corpus/pt2/20130901r/Systems|);
+	enableDebugging();
+	enableLanzaMarinescuAvg();
+	main(|file:///I:/corpus/pt1/20130901r/Systems|);
 }
 
 public void s6() {
+	enableDebugging();
+	enableLanzaMarinescuAvg();
 	//main(|file:///I:/corpus/pt1/20130901r/Systems|);
 	gatherDataSet(|file:///I:/corpus/pt1/20130901r/Systems|, min = 1, max = 8);
 }
 
 public void test1() {
-	println("Starting test");
-	enableDebugging();
+	println("[TEST] Starting test run");
+	enableDebugging(true);
+	enableVerboseLogging();
 	enableLanzaMarinescuAvg();
 	main(|home:///projects|);
 }

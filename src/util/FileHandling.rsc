@@ -15,19 +15,19 @@ public list[loc] gatherProjects(loc directory) {
 	}
 	
 	list[loc] dirs = [];
+	// build list.
 	for (loc dir <- directory.ls, isDirectory(dir)) {
 		dirs += dir; 
 	}
 	return dirs;
 }
 
-// reverse engineering from the analysis::m3::Registry.rsc library 
+//https://stackoverflow.com/questions/60512080/unregistering-m3-models
 public void unregisterProject(loc project, M3 model) {
-	rel[str scheme, loc name, loc src] perScheme 
-      = {<name.scheme, name, src> | <name, src> <- model.declarations};
-      
-	for (str scheme <- perScheme<scheme>) {
-	       unregisterLocations(scheme, project.authority);
-	}
+    schemesAndAuthorities 
+      = {<name.scheme, name.authority> | <name, src> <- model.declarations};
 
+    for (<scheme, authority> <- schemesAndAuthorities) {
+           unregisterLocations(scheme, authority);
+    }
 }

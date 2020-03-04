@@ -31,7 +31,6 @@ public rel[loc, int] calculateCompUnitsCC(M3 model) {
 	output("<prefix> Total project CC: <projectCC>");
 	output("<prefix> Finishing calculating complexity in <convertIntervalToStr(dt)>");
 	return compUnitCC;
-	
 } 
 
 // Calculates the cyclomatic complexity per class.

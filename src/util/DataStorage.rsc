@@ -16,7 +16,7 @@ bool enabled = getStoreData();
 loc dataDir = |tmp:///|;
 str name = "default";
 
-public void initializeDS(loc dir = |home://data|) {
+public void initializeDataStorage(loc dir = |home://data|) {
 	if(!enabled && initialized) return;
 	initializeDirectories();
 	initialized = true;
@@ -42,7 +42,9 @@ public bool checkProjectData(loc project) {
 
 bool checkData(str folder) {
 	loc dataFile = dataDir + "<folder>/<name>";
-	if(isFile(dataFile) && getFileLength(dataFile) > 0) return true;
+	if(isFile(dataFile) && getFileLength(dataFile) > 0) {
+		return true;
+	}
 	return false;
 }
 
@@ -103,10 +105,8 @@ public void storeRawDebugMaps(map[loc, map[loc, int]] rawCC, map[loc, map[loc, i
 	loc dataFileCC2 = dataDir + "RAWCC/<name>_manual";
 	loc dataFileFA2 = dataDir + "RAWFA/<name>_manual";
 	
-	
 	mapToFile(dataFileCC2, rawCC);
 	mapToFile(dataFileFA2, rawFA);
-	
 	
 	writeTextValueFile(dataFileCC, rawCC);
 	writeTextValueFile(dataFileFA, rawFA);
@@ -125,7 +125,6 @@ public void mapToFile(loc file, map[loc, map[loc,int]] dataMap) {
 	}
 }
 
-// data restricted keyword.
 public void mapToFile(loc file, map[loc, rel[loc,loc]] dataMap) {
 	if(!exists(file)) {
 		writeFile(file, "");
@@ -137,7 +136,6 @@ public void mapToFile(loc file, map[loc, rel[loc,loc]] dataMap) {
 		}
 	}
 }
-
 
 public void storeModel(M3 model) {
 	loc dataFile = dataDir + "M3/<name>";
