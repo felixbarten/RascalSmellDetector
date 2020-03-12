@@ -76,11 +76,11 @@ public void setUseMetricsAverages(bool b) {
 }
 
 public void setOverrideThreshold(int n) {
-	overrideThreshold = n;
+	overrideHighThreshold = n;
 }
 
 public void setProtectedMemberThreshold(int n) {
-	protectedMemberThreshold = n;
+	protectedMemberHighThreshold = n;
 }
 
 public void setCouplingThreshold(int n) {

@@ -19,6 +19,8 @@ real avgCC = 0.0;
 real avgAMW = 0.0;
 int totalCC = 0;
 int totalLOC = 0;
+int memberThreshold = 0;
+int protectedMembersOver = 0;
 map[loc, set[int]] locMap = ();
 map[loc, tuple[int wmc, real amw]] ccMap = ();
 map[loc, int] relationCount = ();
@@ -36,6 +38,7 @@ bool fetchData = false;
 // Initialize with no stored data
 public void initialize(M3 model) {
 	output("<prefix> Initializing RB detector...");
+	memberThreshold = getProtectedMemberHighThreshold();
 	setGlobalVars(calculateLOC(model), calculateClassesCC(model));
 }
 
@@ -48,6 +51,7 @@ public void resetRB() {
 	ccMap = ();
 	locMap = ();
 	NProtMMap = ();
+	protectedMembersOver = 0;
 }
 
 // initialized with stored data. 
@@ -57,7 +61,10 @@ public void initialize(M3 model,
 		map[loc, int] INHERITANCE,
 		map[loc, int] NOM) {
 	setGlobalVars(LOC, CC, INHERITANCE, NOM);
+	memberThreshold = getProtectedMemberHighThreshold();
+	
 	output("<prefix> RB detector state restored.");
+	output("<prefix> processing with member threshold: <getProtectedMemberHighThreshold()>");
 }
 
 
@@ -68,6 +75,7 @@ void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
 	setGlobalVars(LOC, CC);
 	relationCount = INHERITANCE;
 	clsNOMMap = NOM;
+	output("<prefix> Finished setting variables for detection.");
 }
 
 void setGlobalVars(tuple[rel[loc,int],int,int,int,real] LOC,
@@ -141,6 +149,7 @@ public rel[loc,loc,bool] detectRB(M3 model, loc project, bool processed = false)
 		
 	output("<prefix> Number of RB candidates: <count> ");
 	output("<prefix> Number of Simple classes: <size(nonTrivialClasses)>");
+	output("<prefix> Number of classes with more protected members than the threshold: <protectedMembersOver>");
 	output("<prefix> Number of RB positive classes: <size(detectedRBClasses)> ");
 	output("<prefix> Finished detecting Refused Bequest in <convertIntervalToStr(N)>");
 	
@@ -197,8 +206,12 @@ bool classIgnoresBequest(M3 model, loc child, loc parent) {
 
 // NProtM > FEW 
 bool parentHasMoreThanAFewProtectedMembers(M3 model, loc parent) { 
-	int threshold = getProtectedMemberHighThreshold();
-	return getNProtM(model, parent) > threshold;
+	bool condition = getNProtM(model, parent) > memberThreshold;
+	if(condition) {
+		protectedMembersOver += 1;
+		return true;
+	}
+	return false;
 }
 
 // return NProtM
@@ -239,35 +252,20 @@ bool childRefusesBequest(M3 model, loc child, loc parent) {
 	int usedMembers = 0;
 	list[loc] parentMemberLocs = getNProtMList(model, parent);
 	int parentMembers = size(parentMemberLocs);
-	rel[loc, loc] foundRelations = {};
 	int memberCount = 0;
 		
 	// processing intensive store data when done. 
 	if(!fetchData) {
-		// loop through field access and method invoc. 
-		//  Check if this class is the start point and check if the end point is one of the protected parent members. 
-		for (<from, to> <- model.fieldAccess, 
-				from.parent.path == child.path
-				&& to in parentMemberLocs
-				&& isFile(to)) {
-			memberCount += 1;
-			foundRelations += <from, to>;
-		}
-		
-		for (<from, to> <- model.methodInvocation, 
-				from.parent.path == child.path 
-				&& to in parentMemberLocs
-				&& isFile(to)) {		
-			memberCount += 1;
-			foundRelations += <from, to>;
-		}
-		relationCount[child] = memberCount;
-		rawRelationsData[child] = foundRelations;		
+		countMembers(model, child, parent, parentMemberLocs);	
 	} else {
 		if (child notin relationCount) {
 			// recovering from this error would be very computationally expensive. 
-			output("Error: Key not found: <child>");
-			return false;
+			output("Error: Key not found: <child>. Attempting to recalculate");
+			countMembers(model, child, parent, parentMemberLocs);
+			if(child notin relationCount) {
+				return false;
+			}
+			output("Recovered from error.");
 		}
 		memberCount = relationCount[child];
 	}
@@ -279,10 +277,36 @@ bool childRefusesBequest(M3 model, loc child, loc parent) {
 	} 
 		
 	bool condition = ratio < 0.33;
-	debug("<child> refuses bequest: <condition>, <ratio>");
+	debug("<prefix> <child> refuses bequest: <condition>, <ratio>");
 	output("<prefix> Finished BUR calculations in <convertIntervalToStr(N)>", printAll);
 	return condition;
 }
+
+void countMembers(M3 model, loc child, loc parent, list[loc] parentMemberLocs) {
+	// loop through field access and method invoc. 
+	//  Check if this class is the start point and check if the end point is one of the protected parent members. 
+	int memberCount = 0;
+	rel[loc, loc] foundRelations = {};
+
+	for (<from, to> <- model.fieldAccess, 
+			from.parent.path == child.path
+			&& to in parentMemberLocs
+			&& isFile(to)) {
+		memberCount += 1;
+		foundRelations += <from, to>;
+	}
+	
+	for (<from, to> <- model.methodInvocation, 
+			from.parent.path == child.path 
+			&& to in parentMemberLocs
+			&& isFile(to)) {		
+		memberCount += 1;
+		foundRelations += <from, to>;
+	}
+	relationCount[child] = memberCount;
+	rawRelationsData[child] = foundRelations;		
+}
+
 
 // BOvR < 0.33. 
 bool childHasFewOverrides(M3 model, loc child) { 
@@ -327,15 +351,17 @@ bool funcComplexityAbvAvg(loc cls) {
 bool classComplexityAbvAvg(loc cls) { 
 	checkIfClassHasValue(cls);
 	int clsWMC = ccMap[cls].wmc;
-	
 	// debugging
 	bool condition =  false;
 	if (useMetrics) { 
 		condition = clsWMC > getWMCAvg();
+		debug("<prefix> <cls> is more complex than Lanza avg: <clsWMC> \> <getWMCAvg()> ");
+		
 	} else {
 		condition = clsWMC > avgCC;
+		debug("<prefix> <cls> is more complex than avg: <clsWMC> \> <avgCC> ");
+	
 	}
-	debug("<cls> is more complex than avg: <clsWMC> \> <avgCC> ");
 	return condition;
 }
 
@@ -394,7 +420,7 @@ rel[loc, loc] getClsOverridesList(M3 model, loc child) {
 // some anon classes can have no separate value. if they're missing add them to the map. Not sure if this causes problems by counting some classes twice.
 void checkIfClassHasValue(loc cls) {
 	if (cls notin ccMap){
-		debug("Class was not found in map");
+		debug("Class was not found in map. Recalculating cc.");
 		// calc cc and add to the map.
 		ccMap[cls] = calculateCCByLocation(cls);
 	}

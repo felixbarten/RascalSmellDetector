@@ -166,7 +166,6 @@ rel[loc,loc] combineThresholdMaps(map[loc, map[loc, int]] iicc, map[loc, map[loc
 				int record = matches[caller][callee];
 				int updatedValue = record + iifa[caller][callee];
 				matches[caller][callee] =  updatedValue;
-				output("Amended record: <record> -\> <updatedValue>", printAll);
 			}
 		}
 	}	

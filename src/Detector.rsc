@@ -161,35 +161,70 @@ public void detectProject(loc project) {
 }
 
 // this method will execute main() (iteration - 1)^2 number of times. VERY time consuming!
-void gatherDataSet(loc directory, int min = 1, int max = 5) {
-	println("Gathering dataset...");
+void gatherDataSet(loc directory, int min = 1, int max = 5, bool permutations = false) {
 	N = now();
 	int count = 0;
-	for (int i <- [min..max]) {
-		for(int j <- [min..max]) {
-			datetime loop = now();
-			println("Running with setting: override: <i>, protected members: <j>");
-			setOverrideThreshold(i);
-			setProtectedMemberThreshold(j);
-			setCouplingThreshold(i);
-			// this may (very) slightly improve performance
-			if (j == 1)
-				enableIIDetector();
-			if(j > 1) 
-				disableIIDetector();
-			
-			if(count >= 1) {
-				reportNewLine();
-				// reprint (adjusted) settings.
-				reportSettings();
+	if(!permutations) {
+		gatherDataSetNoPermutations(directory, min, max);
+	} else {
+		println("<prefix> Gathering dataset...");
+		max = max + 1;
+		for (int i <- [min..max]) {
+			for(int j <- [min..max]) {
+				datetime loop = now();
+				println("<prefix> Running with setting: override: <i>, protected members: <j>");
+				setOverrideThreshold(i);
+				setProtectedMemberThreshold(j);
+				setCouplingThreshold(i);
+				// this may (very) slightly improve performance
+				if (j == 1) {
+					enableIIDetector();
+				}
+				if(j > 1) {
+					disableIIDetector();
+				}
+				if(count >= 1) {
+					reportNewLine();
+					// reprint (adjusted) settings.
+					reportSettings();
+				}
+				main(directory, console = false, oneReport = true);
+				count += 1; 
+				println("Run <count> took: <convertIntervalToStr(loop)>. Total time: <convertIntervalToStr(N)>");
 			}
-			main(directory, console = false, oneReport = true);
-			count += 1; 
-			println("Run <count> took: <convertIntervalToStr(loop)>. Total time: <convertIntervalToStr(N)>");
 		}
+		println("Finished dataset in: <convertIntervalToStr(N)>");
 	}
-	println("Finished dataset in: <convertIntervalToStr(N)>");
 }
+
+// this method will execute main() (iteration - 1)^2 number of times. VERY time consuming!
+void gatherDataSetNoPermutations(loc directory, int min, int max ) {
+	println("<prefix> Gathering dataset...");
+	N = now();
+	int count = 0;
+	println("<prefix> Permutations disabled");
+	max = max + 1;
+	for (int i <- [min..max]) {
+		datetime loop = now();
+		println("<prefix> Running with setting: override: <i>, protected members: <i>");
+		setOverrideThreshold(i);
+		setProtectedMemberThreshold(i);
+		setCouplingThreshold(i);
+		// this may (very) slightly improve performance
+		if(count >= 1) {
+			reportNewLine();
+			// reprint (adjusted) settings.
+			reportSettings();
+		}
+		main(directory, console = false, oneReport = true);
+		count += 1; 
+		println("<prefix> Run <count> took: <convertIntervalToStr(loop)>. Total time: <convertIntervalToStr(N)>");
+		
+	}
+	println("<prefix> Finished dataset in: <convertIntervalToStr(N)>");
+	
+}
+
 
 // temporary start method. Point to local eclipse projects. Due to the dependency on JDT from Eclipse 
 // it's likely most projects for analysis will need to be imported into Eclipse.
@@ -213,16 +248,16 @@ public void s4() {
 }
 
 public void s5() {
-	enableDebugging();
+	enableDebugging(true);
 	enableLanzaMarinescuAvg();
 	main(|file:///I:/corpus/pt1/20130901r/Systems|);
 }
 
 public void s6() {
-	enableDebugging();
+	enableDebugging(true);
+	//enableVerboseLogging();
 	enableLanzaMarinescuAvg();
-	//main(|file:///I:/corpus/pt1/20130901r/Systems|);
-	gatherDataSet(|file:///I:/corpus/pt1/20130901r/Systems|, min = 1, max = 8);
+	gatherDataSet(|file:///I:/corpus/pt1/20130901r/Systems|, min = 1, max = 5, permutations = false);
 }
 
 public void test1() {
